@@ -1,0 +1,8 @@
+[package]
+name = "dayz-server-manager"
+description = "A DayZ server manager for downloading, updating, and running DayZ servers with mod support"
+version = "0.1.0"
+edition = "2024"
+authors = ["Matthew Green <work@matthewgreen.gg>"]
+
+[dependencies]

@@ -8,10 +8,9 @@ use ui::status::{println_failure, println_step, println_step_concat, println_suc
 use ui::prompt::prompt_yes_no;
 
 mod config;
-use config::config::Config;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-const LOCK_FILE: &str = "manager.lock";
+const LOCK_FILE: &str = ".dzsm.lock";
 
 fn check_if_initialized() -> Result<bool> {
     // Check if directory is already managed
@@ -40,7 +39,7 @@ fn initialize() -> Result<bool> {
     println_step("Initializing DZSM in current directory...", 1);
     
     // Create lock file to mark directory as managed
-    println_step("Creating manager.lock file", 2);
+    println_step(&format!("Creating '{LOCK_FILE}' file"), 2);
     match fs::write(LOCK_FILE, format!("Managed by DZSM v{VERSION} - DayZ Server Manager\n")) {
         Ok(()) => {
             println_success("Created new DZSM setup", 0);
@@ -48,7 +47,7 @@ fn initialize() -> Result<bool> {
         }
         Err(e) => {
             // print_status(&format!("Failed to create manager.lock: {}", e), 0);
-            Err(e).context("Failed to create 'manager.lock' file")
+            Err(e).context(format!("Failed to create '{LOCK_FILE}' file"))
         }
     }
 }

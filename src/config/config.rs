@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use anyhow::{Context, Result};
 use super::{server_config::ServerConfig, mods_config::ModsConfig};
 
+const CONFIG_FILE: &str = "config.toml";
 const DEFAULT_CONFIG: &str = include_str!("../../defaults/config.toml");
 
 #[derive(Debug, Deserialize, Serialize)]

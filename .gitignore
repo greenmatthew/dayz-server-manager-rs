@@ -18,3 +18,4 @@ target/
 
 .dzsm.lock
 config.toml
+steamcmd

@@ -9,6 +9,8 @@ use lock::check_if_initialized;
 mod config;
 use config::Config;
 
+mod steamcmd;
+use steamcmd::SteamCmdManager;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -22,6 +24,10 @@ fn main() -> Result<()> {
 
     // Check and load configuration
     let config = Config::check_and_load()?;
+
+    // Check and install SteamCMD if needed
+    let steamcmd_manager = SteamCmdManager::new(&config.server.steamcmd_dir);
+    steamcmd_manager.check_and_install()?;
 
     println!("Config:");
     println!("  Server:");

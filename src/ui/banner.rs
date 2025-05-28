@@ -2,7 +2,7 @@ use crate::VERSION;
 
 pub fn print_banner() {
     let banner = include_str!("../../banner.ascii");
-    let term_width = term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
+    let term_width = term_size::dimensions().map_or(80, |(w, _)| w);
 
     println!(); // Padding before banner
 

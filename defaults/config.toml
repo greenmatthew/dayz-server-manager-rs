@@ -1,0 +1,13 @@
+[server]
+steamcmd_dir = "C:/SteamCMD"      # Path to SteamCMD executable
+install_dir = "C:/DayZ Server"    # DayZ server installation directory
+server_app_id = 223350            # App ID for DayZ Dedicated Server
+game_app_id = 221100              # App ID for DayZ (base game)
+username = "username"             # Steam account name (login once manually to cache credentials)
+
+[mods]
+mod_list = [
+    # Format: [WorkshopID, "Mod Name"]
+    # Example (uncomment to use):
+    # [1582756848, "ZomBerry Admin Tools"],
+]

@@ -6,3 +6,7 @@ edition = "2024"
 authors = ["Matthew Green <work@matthewgreen.gg>"]
 
 [dependencies]
+anyhow = "1.0.98"
+serde = { version = "1.0.219", features = ["derive"] }
+term_size = "0.3.2"
+toml = "0.8.22"

@@ -6,11 +6,11 @@ use std::path::Path;
 mod config;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+const LOCK_FILE: &str = "manager.lock";
 
 pub fn print_banner() {
     let banner = include_str!("../banner.ascii");
-
-    let term_width = term_size::dimensions().map(|(w, _)| w).unwrap_or(80);
+    let term_width = term_size::dimensions().map_or(80, |(w, _)| w);
 
     println!(); // Padding before banner
 
@@ -39,45 +39,106 @@ pub fn print_banner() {
     println!(); // Padding after banner
 }
 
-fn main() -> Result<()> {
-    print_banner();
+// Progress indicator symbols and formatting
+const CHECK_MARK: &str = "✓";
+const CROSS_MARK: &str = "✗";
+const ARROW: &str = "→";
 
-    println!("Using DZSM to manage a DayZ server.\n");
+fn println_failure(message: &str, level: usize) {
+    let indent = "  ".repeat(level);
+    println!("{indent}{CROSS_MARK} {message}");
+}
 
+fn println_step(message: &str, level: usize) {
+    let indent = "  ".repeat(level);
+    println!("{indent}{ARROW} {message}");
+}
+
+fn println_step_concat(message: &str, level: usize) {
+    let indent = "  ".repeat(level);
+    println!("{indent}  {message}");
+}
+
+fn print_step_concat(message: &str, level: usize) {
+    let indent = "  ".repeat(level);
+    print!("{indent}  {message}");
+}
+
+fn println_success(message: &str, level: usize) {
+    let indent = "  ".repeat(level);
+    println!("{indent}{CHECK_MARK} {message}");
+}
+
+fn prompt_yes_no(prompt: &str, default: bool, level: usize) -> Result<bool> {
+    let options = if default { "(Y/n)" } else { "(y/N)" };
+    
+    println!();
+    print_step_concat(&format!("{prompt} {options}: "), level);
+    io::stdout().flush()?;
+
+    let mut input = String::new();
+    io::stdin().read_line(&mut input)?;
+    let input = input.trim().to_lowercase();
+
+    Ok(match input.as_str() {
+        "" => default,
+        "y" | "yes" => true,
+        "n" | "no" => false,
+        _ => {
+            println!("Please enter 'y' or 'n'");
+            return prompt_yes_no(prompt, default, level);
+        }
+    })
+}
+
+fn check_if_initialized() -> Result<bool> {
+    // Check if directory is already managed
+    let lock_path = Path::new(LOCK_FILE);
+    if lock_path.exists() {
+        println_success("Found existing DZSM setup", 0);
+        Ok(true)
+    } else {
+        println_failure("No existing DZSM setup found", 0);
+        initialize()
+    }
+}
+
+fn initialize() -> Result<bool> {
     let cwd = std::env::current_dir().context("Failed to get current working directory")?;
     let cwd_str = cwd.display();
 
-    let lock_path = Path::new("manager.lock");
+    println_step(&format!("Would you like to use the current working directory: \"{cwd_str}\""), 1);
+    println_step_concat("This will install DZSM configuration files", 1);
+    println_step_concat("along with DayZ server and mod files to this directory.", 1);
 
-    if lock_path.exists() {
-        println!("Found existing DZSM-managed directory:\n  \"{cwd_str}\"\n");
-    } else {
-        println!("No existing DZSM setup found in:\n  \"{cwd_str}\"");
-        println!("This will install DZSM configuration files");
-        println!("along with DayZ server and mod files to this directory.\n");
-
-        print!("Proceed with installation? (y/N): ");
-        io::stdout().flush()?; // Ensure prompt is shown
-
-        let mut input = String::new();
-        io::stdin().read_line(&mut input)?;
-        let input = input.trim().to_lowercase();
-
-        if input != "y" && input != "yes" {
-            println!("\nInstallation aborted.");
-            return Ok(());
-        }
-
-        println!("\nCreating 'manager.lock' to mark this directory as DZSM-managed...");
-
-        fs::write(lock_path, format!("Managed by dayz-server-manager v{VERSION}\n"))
-            .context("Failed to create 'manager.lock' file")?;
+    if !prompt_yes_no("Proceed with installation?", false, 1)? {
+        return Ok(false);
     }
 
-    let config = config::config::Config::load_or_create("config.toml")?;
-    config.save("config.toml")?;
+    println_step("Initializing DZSM in current directory...", 1);
+    
+    // Create lock file to mark directory as managed
+    println_step("Creating manager.lock file", 2);
+    match fs::write(LOCK_FILE, format!("Managed by dayz-server-manager v{VERSION}\n")) {
+        Ok(()) => {
+            println_success("Created new DZSM setup", 0);
+            Ok(true)
+        }
+        Err(e) => {
+            // print_status(&format!("Failed to create manager.lock: {}", e), 0);
+            Err(e).context("Failed to create 'manager.lock' file")
+        }
+    }
+}
 
-    println!("Server install dir: {}", config.server.install_dir);
+fn main() -> Result<()> {
+    print_banner();
+    println!("Using DZSM to manage a DayZ server.\n");
+
+    if !check_if_initialized()? {
+        println!("\nInstallation aborted.");
+        return Ok(());
+    }
     
     Ok(())
 }

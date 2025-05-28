@@ -9,6 +9,7 @@ authors = ["Matthew Green <work@matthewgreen.gg>"]
 anyhow = "1.0.98"
 chrono = { version = "0.4.41", features = ["serde"] }
 curl = "0.4.47"
+scraper = "0.23.1"
 serde = { version = "1.0.219", features = ["derive"] }
 tempfile = "3.20.0"
 term_size = "0.3.2"

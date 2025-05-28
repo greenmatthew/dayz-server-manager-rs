@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 
 mod ui;
 use ui::banner::print_banner;
@@ -9,11 +9,19 @@ use lock::check_if_initialized;
 mod config;
 use config::Config;
 
+mod steamcmd;
+use steamcmd::SteamCmdManager;
+
+mod mods;
+use mods::ModsManager;
+
 mod server;
 use server::ServerManager;
 
-mod steamcmd;
-use steamcmd::SteamCmdManager;
+mod collection_parser;
+
+mod collection_fetcher;
+use collection_fetcher::CollectionFetcher;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -44,6 +52,11 @@ fn main() -> Result<()> {
     
     // Update/validate mods
     steamcmd_manager.update_mods()?;
+
+    // Initialize mods manager and install/update mods
+    let mods_manager = ModsManager::new(config.clone(), &server_install_dir);
+    mods_manager.cleanup_unused_mods()?;
+    mods_manager.install_mods()?;
 
     // Initialize and run the DayZ server
     let server_manager = ServerManager::new(config.clone(), &server_install_dir);

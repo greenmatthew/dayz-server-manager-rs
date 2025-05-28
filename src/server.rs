@@ -7,6 +7,7 @@ use crate::config::Config;
 
 const SERVER_EXE: &str = "DayZServer_x64.exe";
 const SERVER_CONFIG: &str = "serverDZ.cfg";
+const SERVER_PROFILES: &str = "profiles";
 
 pub struct ServerManager {
     config: Config,
@@ -34,7 +35,9 @@ impl ServerManager {
         }
 
         // Build the command arguments
-        let mut args = vec![format!("-config={}", SERVER_CONFIG)];
+        let mut args = vec![format!("-config={SERVER_CONFIG}")];
+
+        args.push(format!("-profiles={SERVER_PROFILES}"));
         
         // Add mods if any are configured
         if !self.config.mods.mod_list.is_empty() {

@@ -32,11 +32,17 @@ impl Config {
             .context("Failed to parse config")
     }
 
-    pub fn save(&self, config_path: &str) -> Result<()> {
-        let config_content = toml::to_string_pretty(self)
-            .context("Failed to serialize config")?;
+    /// Static function to save configuration content to file
+    pub fn save(config_path: &str, config_content: &str) -> Result<()> {
         fs::write(config_path, config_content)
             .context("Failed to write config file")
+    }
+
+    /// Save this config instance to file (convenience method)
+    pub fn _save_to_file(&self, config_path: &str) -> Result<()> {
+        let config_content = toml::to_string_pretty(self)
+            .context("Failed to serialize config")?;
+        Self::save(config_path, &config_content)
     }
 
     /// Check for configuration file and create if missing
@@ -49,11 +55,10 @@ impl Config {
             println_failure("Configuration missing", 0);
             println_step("Saving default configuration", 1);
             
-            // Create the default config file
-            fs::write(CONFIG_FILE, DEFAULT_CONFIG)
-                .context("Failed to create default config file")?;
+            // Create the default config file using the static save function
+            Self::save(CONFIG_FILE, DEFAULT_CONFIG)?;
             
-            println_success("Configuration found", 0);
+            println_success("Configuration created", 0);
             Self::parse(DEFAULT_CONFIG)
         }
     }

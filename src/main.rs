@@ -30,18 +30,6 @@ fn main() -> Result<()> {
     // Check and load configuration
     let config = Config::check_and_load()?;
 
-    // Initialize SteamCMD manager with config and server install directory
-    let steamcmd_manager = SteamCmdManager::new(config.clone(), &server_install_dir);
-    
-    // Check and install SteamCMD if needed (always validates)
-    steamcmd_manager.check_and_install()?;
-    
-    // Update server (always validates)
-    steamcmd_manager.update_server()?;
-    
-    // Update mods (always validates)
-    steamcmd_manager.update_mods()?;
-    
     println!("\n=== Configuration Summary ===");
     println!("Server:");
     println!("  steamcmd_dir: {}", config.server.steamcmd_dir);
@@ -58,6 +46,20 @@ fn main() -> Result<()> {
             println!("  {}. {} ({})", index + 1, mod_entry.name, mod_entry.id);
         }
     }
+    println!();
+    println!();
+
+    // Initialize SteamCMD manager with config and server install directory
+    let steamcmd_manager = SteamCmdManager::new(config.clone(), &server_install_dir);
+    
+    // Check and install SteamCMD if needed (always validates)
+    steamcmd_manager.check_and_install()?;
+    
+    // Update server (always validates)
+    steamcmd_manager.update_server()?;
+    
+    // Update mods (always validates)
+    steamcmd_manager.update_mods()?;
     
     println!("\n=== Setup Complete ===");
     

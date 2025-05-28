@@ -70,11 +70,11 @@ impl SteamCmdManager {
 
     /// Update the DayZ server (always with validation)
     pub fn update_server(&self) -> Result<()> {
-        println_step("Updating DayZ server...", 0);
+        println_step("Updating DayZ server...", 1);
         
         // Create server directory if it doesn't exist
         if !self.server_install_dir.exists() {
-            println_step(&format!("Creating server directory: {}", self.server_install_dir.display()), 1);
+            println_step(&format!("Creating server directory: {}", self.server_install_dir.display()), 2);
             fs::create_dir_all(&self.server_install_dir)
                 .context("Failed to create server directory")?;
         }
@@ -131,7 +131,7 @@ impl SteamCmdManager {
         Ok(())
     }
 
-    /// Check if the steamcmd directory is empty
+    /// Check if the SteamCMD directory is empty
     fn is_directory_empty(&self) -> Result<bool> {
         let entries = fs::read_dir(&self.steamcmd_dir)
             .context("Failed to read SteamCMD directory")?;
@@ -188,7 +188,7 @@ impl SteamCmdManager {
         Ok(data)
     }
 
-    /// Extract zip file to steamcmd directory
+    /// Extract zip file to SteamCMD directory
     fn extract_zip(&self, zip_data: Vec<u8>) -> Result<()> {
         use zip::ZipArchive;
         use std::io::Read;
@@ -233,11 +233,11 @@ impl SteamCmdManager {
         self.steamcmd_dir.join(STEAMCMD_EXE)
     }
 
-    /// Run steamcmd with arguments as a vector
+    /// Run SteamCMD with arguments as a vector
     fn run_steamcmd_with_args(&self, args: Vec<&str>) -> Result<()> {
         let steamcmd_exe = self.get_exe_path();
         
-        println_step(&format!("Running SteamCMD with args: {:?}", args), 2);
+        println_step(&format!("Running SteamCMD with args: {args:?}"), 2);
         
         let output = Command::new(&steamcmd_exe)
             .args(&args)

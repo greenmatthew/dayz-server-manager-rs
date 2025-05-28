@@ -8,7 +8,6 @@ use anyhow::{Context, Result};
 
 pub use server_config::ServerConfig;
 pub use mods_config::ModsConfig;
-pub use mod_entry::ModEntry;
 
 use crate::ui::status::{println_failure, println_step, println_success};
 

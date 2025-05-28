@@ -1,7 +1,7 @@
 use std::fmt;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ModEntry {
     pub id: u64,
     pub name: String,

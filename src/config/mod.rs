@@ -6,15 +6,16 @@ use std::{fs, path::Path};
 use serde::{Deserialize, Serialize};
 use anyhow::{Context, Result};
 
-use server_config::ServerConfig;
-use mods_config::ModsConfig;
+pub use server_config::ServerConfig;
+pub use mods_config::ModsConfig;
+pub use mod_entry::ModEntry;
 
 use crate::ui::status::{println_failure, println_step, println_success};
 
 const CONFIG_FILE: &str = "config.toml";
 const DEFAULT_CONFIG: &str = include_str!("../../defaults/config.toml");
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Config {
     pub server: ServerConfig,
     pub mods: ModsConfig,

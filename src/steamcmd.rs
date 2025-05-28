@@ -7,19 +7,24 @@ use std::process::Command;
 
 use crate::ui::status::{println_failure, println_step, println_success};
 use crate::ui::prompt::prompt_yes_no;
-use crate::config::server_config::ServerConfig;
+use crate::config::Config;
 
 const STEAMCMD_EXE: &str = "steamcmd.exe";
 const STEAMCMD_DOWNLOAD_URL: &str = "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip";
 
 pub struct SteamCmdManager {
+    config: Config,
+    server_install_dir: PathBuf,
     steamcmd_dir: PathBuf,
 }
 
 impl SteamCmdManager {
-    pub fn new(steamcmd_dir: &str) -> Self {
+    pub fn new(config: Config, server_install_dir: &str) -> Self {
+        let steamcmd_dir = PathBuf::from(&config.server.steamcmd_dir);
         Self {
-            steamcmd_dir: PathBuf::from(steamcmd_dir),
+            config,
+            server_install_dir: PathBuf::from(server_install_dir),
+            steamcmd_dir,
         }
     }
 
@@ -60,6 +65,69 @@ impl SteamCmdManager {
         self.download_and_install()?;
         println_success("SteamCMD installed successfully", 0);
         
+        Ok(())
+    }
+
+    /// Update the DayZ server (always with validation)
+    pub fn update_server(&self) -> Result<()> {
+        println_step("Updating DayZ server...", 0);
+        
+        // Create server directory if it doesn't exist
+        if !self.server_install_dir.exists() {
+            println_step(&format!("Creating server directory: {}", self.server_install_dir.display()), 1);
+            fs::create_dir_all(&self.server_install_dir)
+                .context("Failed to create server directory")?;
+        }
+        
+        let install_dir_str = self.server_install_dir.to_string_lossy().to_string();
+        let server_app_id_str = self.config.server.server_app_id.to_string();
+        
+        let args = vec![
+            "+force_install_dir",
+            &install_dir_str,
+            "+login",
+            &self.config.server.username,
+            "+app_update",
+            &server_app_id_str,
+            "validate", // Always validate as requested
+            "+quit",
+        ];
+        
+        self.run_steamcmd_with_args(args)?;
+        
+        println_success("Server update completed", 0);
+        Ok(())
+    }
+
+    /// Update mods from the configuration
+    pub fn update_mods(&self) -> Result<()> {
+        if self.config.mods.mod_list.is_empty() {
+            println_step("No mods configured, skipping mod updates", 0);
+            return Ok(());
+        }
+
+        println_step(&format!("Updating {} mod(s)...", self.config.mods.mod_list.len()), 0);
+        
+        for mod_entry in &self.config.mods.mod_list {
+            println_step(&format!("Updating mod: {} ({})", mod_entry.name, mod_entry.id), 1);
+            
+            let mod_id_str = mod_entry.id.to_string();
+            let game_app_id_str = self.config.server.game_app_id.to_string();
+            
+            let args = vec![
+                "+login",
+                &self.config.server.username,
+                "+workshop_download_item",
+                &game_app_id_str,
+                &mod_id_str,
+                "validate", // Always validate
+                "+quit",
+            ];
+            
+            self.run_steamcmd_with_args(args)?;
+        }
+        
+        println_success("Mod updates completed", 0);
         Ok(())
     }
 
@@ -165,48 +233,11 @@ impl SteamCmdManager {
         self.steamcmd_dir.join(STEAMCMD_EXE)
     }
 
-    /// Run steamcmd with the given arguments
-    pub fn run_steamcmd(&self, args: &str) -> Result<()> {
+    /// Run steamcmd with arguments as a vector
+    fn run_steamcmd_with_args(&self, args: Vec<&str>) -> Result<()> {
         let steamcmd_exe = self.get_exe_path();
         
-        println_step(&format!("Running SteamCMD with args: {}", args), 1);
-        
-        let mut command = Command::new(&steamcmd_exe);
-        
-        // Split args by spaces and add them to the command
-        // Note: This is a simple split - you might want more sophisticated parsing
-        // if you need to handle quoted arguments with spaces
-        for arg in args.split_whitespace() {
-            command.arg(arg);
-        }
-        
-        // Execute the command
-        let output = command
-            .output()
-            .context("Failed to execute SteamCMD")?;
-        
-        // Check if the command was successful
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            
-            return Err(anyhow::anyhow!(
-                "SteamCMD failed with exit code: {:?}\nStdout: {}\nStderr: {}", 
-                output.status.code(), 
-                stdout, 
-                stderr
-            ));
-        }
-        
-        println_success("SteamCMD command completed successfully", 1);
-        Ok(())
-    }
-    
-    /// Run steamcmd with arguments as a vector (alternative approach)
-    pub fn run_steamcmd_with_args(&self, args: Vec<&str>) -> Result<()> {
-        let steamcmd_exe = self.get_exe_path();
-        
-        println_step(&format!("Running SteamCMD with args: {:?}", args), 1);
+        println_step(&format!("Running SteamCMD with args: {:?}", args), 2);
         
         let output = Command::new(&steamcmd_exe)
             .args(&args)
@@ -225,39 +256,7 @@ impl SteamCmdManager {
             ));
         }
         
-        println_success("SteamCMD command completed successfully", 1);
-        Ok(())
-    }
-    
-    /// Update the DayZ server
-    pub fn update_server(&self, server_config: &ServerConfig, validate: bool) -> Result<()> {
-        println_step("Updating DayZ server...", 0);
-        
-        let install_dir = std::env::current_dir()
-            .context("Failed to get current directory")?
-            .join("server");
-        
-        // Create the string values first to avoid temporary value issues
-        let install_dir_str = install_dir.to_string_lossy().to_string();
-        let server_app_id_str = server_config.server_app_id.to_string();
-        
-        let mut args = vec![
-            "+force_install_dir",
-            &install_dir_str,
-            "+login",
-            &server_config.username,
-            "+app_update",
-            &server_app_id_str,
-        ];
-        
-        if validate {
-            args.push("validate");
-        }
-        args.push("+quit");
-        
-        self.run_steamcmd_with_args(args)?;
-        
-        println_success("Server update completed", 0);
+        println_success("SteamCMD command completed successfully", 2);
         Ok(())
     }
 }
@@ -265,26 +264,45 @@ impl SteamCmdManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config::{ServerConfig, ModsConfig};
     use std::fs;
     use tempfile::TempDir;
+
+    fn create_test_config() -> Config {
+        Config {
+            server: ServerConfig {
+                steamcmd_dir: "test_steamcmd".to_string(),
+                server_app_id: 223350,
+                game_app_id: 221100,
+                username: "testuser".to_string(),
+            },
+            mods: ModsConfig {
+                mod_list: vec![],
+            },
+        }
+    }
 
     #[test]
     fn test_steamcmd_found() {
         let temp_dir = TempDir::new().unwrap();
-        let steamcmd_dir = temp_dir.path().to_string_lossy();
+        let mut config = create_test_config();
+        config.server.steamcmd_dir = temp_dir.path().to_string_lossy().to_string();
         
         // Create fake steamcmd.exe
         let steamcmd_exe = temp_dir.path().join(STEAMCMD_EXE);
         fs::write(&steamcmd_exe, "fake exe").unwrap();
         
-        let manager = SteamCmdManager::new(&steamcmd_dir);
+        let manager = SteamCmdManager::new(config, "test_server");
         assert!(manager.check_and_install().is_ok());
     }
 
     #[test]
     fn test_is_directory_empty() {
         let temp_dir = TempDir::new().unwrap();
-        let manager = SteamCmdManager::new(&temp_dir.path().to_string_lossy());
+        let mut config = create_test_config();
+        config.server.steamcmd_dir = temp_dir.path().to_string_lossy().to_string();
+        
+        let manager = SteamCmdManager::new(config, "test_server");
         
         // Should be empty initially
         assert!(manager.is_directory_empty().unwrap());

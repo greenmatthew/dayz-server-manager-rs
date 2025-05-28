@@ -1,7 +1,7 @@
 [server]
 # Path to SteamCMD installation directory:
 # steamcmd_dir = "C:/steamcmd"    # Absolute path example
-steamcmd_dir = "./steamcmd"       # Relative path exmaple
+steamcmd_dir = "./steamcmd"       # Relative path example
 server_app_id = 223350            # App ID for DayZ Dedicated Server
 game_app_id = 221100              # App ID for DayZ (base game)
 username = "username"             # Steam account name (login once manually to cache credentials)
@@ -9,6 +9,11 @@ username = "username"             # Steam account name (login once manually to c
 [mods]
 mod_list = [
     # Format: { id = WorkshopID, name = "Mod Name" }
-    # Example (uncomment to use):
-    # { id = 1582756848, name = "ZomBerry Admin Tools" },
+    # Essential server tools (uncomment to use):
+    
+    # CF - Community Framework - Required by many server mods
+    # { id = 1559212036, name = "CF" },
+    
+    # Community-Online-Tools - Server admin tools (requires CF)
+    # { id = 1564026768, name = "Community-Online-Tools" },
 ]

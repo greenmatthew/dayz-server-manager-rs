@@ -42,7 +42,5 @@ fn main() -> Result<()> {
     // Update mods (always validates)
     steamcmd_manager.update_mods()?;
     
-    println!("\n=== Setup Complete ===");
-    
     Ok(())
 }

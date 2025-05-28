@@ -108,10 +108,10 @@ impl SteamCmdManager {
             return Ok(());
         }
 
-        println_step(&format!("Updating {} mod(s)...", self.config.mods.mod_list.len()), 1);
+        println_step(&format!("Updating/validating {} mod(s)...", self.config.mods.mod_list.len()), 1);
         
         for mod_entry in &self.config.mods.mod_list {
-            println_step(&format!("Updating mod: {} ({})", mod_entry.name, mod_entry.id), 2);
+            println_step(&format!("Updating/validating mod: {} ({})", mod_entry.name, mod_entry.id), 2);
             
             let mod_id_str = mod_entry.id.to_string();
             let game_app_id_str = self.config.server.game_app_id.to_string();
@@ -129,7 +129,9 @@ impl SteamCmdManager {
             self.run_steamcmd_with_args(args)?;
         }
         
-        println_success("Mod updates completed", 0);
+        println!();
+        println!();
+        println_success("Mod updates/validation completed", 0);
         Ok(())
     }
 

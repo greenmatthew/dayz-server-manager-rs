@@ -1,11 +1,13 @@
 use anyhow::{Context, Result, anyhow};
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::io::{Write, Cursor};
+use std::path::PathBuf;
+use std::io::Cursor;
 use curl::easy::Easy;
+use std::process::Command;
 
 use crate::ui::status::{println_failure, println_step, println_success};
 use crate::ui::prompt::prompt_yes_no;
+use crate::config::server_config::ServerConfig;
 
 const STEAMCMD_EXE: &str = "steamcmd.exe";
 const STEAMCMD_DOWNLOAD_URL: &str = "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip";
@@ -161,6 +163,102 @@ impl SteamCmdManager {
     /// Get the path to steamcmd.exe
     pub fn get_exe_path(&self) -> PathBuf {
         self.steamcmd_dir.join(STEAMCMD_EXE)
+    }
+
+    /// Run steamcmd with the given arguments
+    pub fn run_steamcmd(&self, args: &str) -> Result<()> {
+        let steamcmd_exe = self.get_exe_path();
+        
+        println_step(&format!("Running SteamCMD with args: {}", args), 1);
+        
+        let mut command = Command::new(&steamcmd_exe);
+        
+        // Split args by spaces and add them to the command
+        // Note: This is a simple split - you might want more sophisticated parsing
+        // if you need to handle quoted arguments with spaces
+        for arg in args.split_whitespace() {
+            command.arg(arg);
+        }
+        
+        // Execute the command
+        let output = command
+            .output()
+            .context("Failed to execute SteamCMD")?;
+        
+        // Check if the command was successful
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            
+            return Err(anyhow::anyhow!(
+                "SteamCMD failed with exit code: {:?}\nStdout: {}\nStderr: {}", 
+                output.status.code(), 
+                stdout, 
+                stderr
+            ));
+        }
+        
+        println_success("SteamCMD command completed successfully", 1);
+        Ok(())
+    }
+    
+    /// Run steamcmd with arguments as a vector (alternative approach)
+    pub fn run_steamcmd_with_args(&self, args: Vec<&str>) -> Result<()> {
+        let steamcmd_exe = self.get_exe_path();
+        
+        println_step(&format!("Running SteamCMD with args: {:?}", args), 1);
+        
+        let output = Command::new(&steamcmd_exe)
+            .args(&args)
+            .output()
+            .context("Failed to execute SteamCMD")?;
+        
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            
+            return Err(anyhow::anyhow!(
+                "SteamCMD failed with exit code: {:?}\nStdout: {}\nStderr: {}", 
+                output.status.code(), 
+                stdout, 
+                stderr
+            ));
+        }
+        
+        println_success("SteamCMD command completed successfully", 1);
+        Ok(())
+    }
+    
+    /// Update the DayZ server
+    pub fn update_server(&self, server_config: &ServerConfig, validate: bool) -> Result<()> {
+        println_step("Updating DayZ server...", 0);
+        
+        let install_dir = std::env::current_dir()
+            .context("Failed to get current directory")?
+            .join("server");
+        
+        // Create the string values first to avoid temporary value issues
+        let install_dir_str = install_dir.to_string_lossy().to_string();
+        let server_app_id_str = server_config.server_app_id.to_string();
+        
+        let mut args = vec![
+            "+force_install_dir",
+            &install_dir_str,
+            "+login",
+            &server_config.username,
+            "+app_update",
+            &server_app_id_str,
+        ];
+        
+        if validate {
+            args.push("validate");
+        }
+        args.push("+quit");
+        
+        self.run_steamcmd_with_args(args)?;
+        
+        println_success("Server update completed", 0);
+        Ok(())
     }
 }
 

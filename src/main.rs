@@ -28,7 +28,10 @@ fn main() -> Result<()> {
     // Check and install SteamCMD if needed
     let steamcmd_manager = SteamCmdManager::new(&config.server.steamcmd_dir);
     steamcmd_manager.check_and_install()?;
-
+    
+    // Update server
+    steamcmd_manager.update_server(&config.server, false)?;
+    
     println!("Config:");
     println!("  Server:");
     println!("    steamcmd_dir: {}", config.server.steamcmd_dir);

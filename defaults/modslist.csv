@@ -1,7 +1,0 @@
-# To add a new Steam Workshop mod:
-# Put a Steam Workshop ID and exact name on Steam Workshop separated by a comma (whitespace ignored) all on a single line.
-# If you want to add another mod do it on another line.
-# Steam Workshop IDs can be found at the end of the Steam URL of the workshop item: https://steamcommunity.com/sharedfiles/filedetails/?id=1582756848.
-# Note: the '#' character makes it so that the character and any character after it, on the same line, is ignored when the file is parsed.
-# Example:
-# 1582756848, ZomBerry Admin Tools # Remove the first '#' character on this line and you have a valid line for adding a workshop item.

@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
+use crate::config::mod_entry::ModEntry;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ModsConfig {
-    mod_list: Vec<[String; 2]>  // [WorkshopID, ModName]
+    pub mod_list: Vec<ModEntry>
 }

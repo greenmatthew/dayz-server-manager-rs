@@ -208,20 +208,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dayz-server-manager"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "curl",
- "serde",
- "tempfile",
- "term_size",
- "toml",
- "zip",
-]
-
-[[package]]
 name = "deflate64"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -256,6 +242,20 @@ dependencies = [
  "block-buffer",
  "crypto-common",
  "subtle",
+]
+
+[[package]]
+name = "dzsm"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "curl",
+ "serde",
+ "tempfile",
+ "term_size",
+ "toml",
+ "zip",
 ]
 
 [[package]]

@@ -26,6 +26,16 @@ run *ARGS:
 run-release *ARGS:
     cargo run --release -- {{ARGS}}
 
+# Install debug build to specified path
+# Usage: just install-debug /path/to/directory
+install-debug PATH: build
+    cp target/debug/dzsm.exe {{PATH}}/dzsm.exe
+
+# Install release build to specified path  
+# Usage: just install /path/to/directory
+install PATH: build-release
+    cp target/release/dzsm.exe {{PATH}}/dzsm.exe
+
 # Remove build artifacts and intermediate files
 clean:
     cargo clean

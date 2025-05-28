@@ -1,5 +1,5 @@
 [package]
-name = "dayz-server-manager"
+name = "dzsm"
 description = "A DayZ server manager for downloading, updating, and running DayZ servers with mod support"
 version = "0.1.0"
 edition = "2024"

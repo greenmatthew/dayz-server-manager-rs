@@ -9,6 +9,8 @@ use anyhow::{Context, Result};
 use server_config::ServerConfig;
 use mods_config::ModsConfig;
 
+use crate::ui::status::{println_failure, println_step, println_success};
+
 const CONFIG_FILE: &str = "config.toml";
 const DEFAULT_CONFIG: &str = include_str!("../../defaults/config.toml");
 
@@ -37,12 +39,21 @@ impl Config {
             .context("Failed to write config file")
     }
 
-    pub fn load_or_create(config_path: &str) -> Result<Self> {
-        if Path::new(config_path).exists() {
-            Self::load(config_path)
+    /// Check for configuration file and create if missing
+    /// Returns the loaded configuration and prints status messages
+    pub fn check_and_load() -> Result<Self> {
+        if Path::new(CONFIG_FILE).exists() {
+            println_success("Configuration found", 0);
+            Self::load(CONFIG_FILE)
         } else {
-            fs::write(config_path, DEFAULT_CONFIG)
-                .context("Failed to create default config")?;
+            println_failure("Configuration missing", 0);
+            println_step("Saving default configuration", 1);
+            
+            // Create the default config file
+            fs::write(CONFIG_FILE, DEFAULT_CONFIG)
+                .context("Failed to create default config file")?;
+            
+            println_success("Configuration found", 0);
             Self::parse(DEFAULT_CONFIG)
         }
     }

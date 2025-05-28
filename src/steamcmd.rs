@@ -96,7 +96,6 @@ impl SteamCmdManager {
         self.run_steamcmd_with_args(args)?;
         
         println!();
-        println!();
         println_success("Server update completed", 0);
 
         Ok(())
@@ -105,14 +104,14 @@ impl SteamCmdManager {
     /// Update mods from the configuration
     pub fn update_mods(&self) -> Result<()> {
         if self.config.mods.mod_list.is_empty() {
-            println_step("No mods configured, skipping mod updates", 0);
+            println_success("No mods configured, skipping mod updates", 0);
             return Ok(());
         }
 
-        println_step(&format!("Updating {} mod(s)...", self.config.mods.mod_list.len()), 0);
+        println_step(&format!("Updating {} mod(s)...", self.config.mods.mod_list.len()), 1);
         
         for mod_entry in &self.config.mods.mod_list {
-            println_step(&format!("Updating mod: {} ({})", mod_entry.name, mod_entry.id), 1);
+            println_step(&format!("Updating mod: {} ({})", mod_entry.name, mod_entry.id), 2);
             
             let mod_id_str = mod_entry.id.to_string();
             let game_app_id_str = self.config.server.game_app_id.to_string();

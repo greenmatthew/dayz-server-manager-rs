@@ -4,7 +4,7 @@ pub mod server_config;
 
 use std::{fs, path::Path};
 use serde::{Deserialize, Serialize};
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 
 pub use server_config::ServerConfig;
 pub use mods_config::ModsConfig;
@@ -45,21 +45,64 @@ impl Config {
         Self::save(config_path, &config_content)
     }
 
+    /// Print configuration summary
+    pub fn print_summary(&self, server_install_dir: &str) {
+        println!("\n=== Configuration Summary ===");
+        println!("Server:");
+        println!("  steamcmd_dir: {}", self.server.steamcmd_dir);
+        println!("  server_app_id: {}", self.server.server_app_id);
+        println!("  game_app_id: {}", self.server.game_app_id);
+        println!("  username: {}", self.server.username);
+        println!("  install_dir: {server_install_dir}");
+        
+        println!("Mods:");
+        if self.mods.mod_list.is_empty() {
+            println!("  (no mods configured)");
+        } else {
+            for (index, mod_entry) in self.mods.mod_list.iter().enumerate() {
+                println!("  {}. {} ({})", index + 1, mod_entry.name, mod_entry.id);
+            }
+        }
+        println!();
+    }
+
     /// Check for configuration file and create if missing
     /// Returns the loaded configuration and prints status messages
-    pub fn check_and_load() -> Result<Self> {
-        if Path::new(CONFIG_FILE).exists() {
+    pub fn check_and_load(server_install_dir: &str) -> Result<Self> {
+        let found_existing_config = Path::new(CONFIG_FILE).exists();
+        
+        let config = if found_existing_config {
             println_success("Configuration found", 0);
-            Self::load(CONFIG_FILE)
+            Self::load(CONFIG_FILE)?
         } else {
             println_failure("Configuration missing", 0);
-            println_step("Saving default configuration", 1);
+            println_step("Creating default configuration", 1);
             
             // Create the default config file using the static save function
             Self::save(CONFIG_FILE, DEFAULT_CONFIG)?;
             
-            println_success("Configuration created", 0);
-            Self::parse(DEFAULT_CONFIG)
+            println_success(&format!("Default configuration created: '{CONFIG_FILE}'"), 1);
+            Self::parse(DEFAULT_CONFIG)?
+        };
+
+        // Always show the config summary
+        config.print_summary(server_install_dir);
+
+        if found_existing_config {
+            Ok(config)
+        } else {
+            println!("⚠️  IMPORTANT: Please edit '{CONFIG_FILE}' before running DZSM again:");
+            println!("   1. Set your Steam username (account must own DayZ)");
+            println!("   2. Adjust steamcmd_dir path if needed");
+            println!("   3. Add any mods you want to the mod_list");
+            println!();
+            println!("   Note: 'anonymous' login will NOT work - you need a valid Steam account!");
+            println!("   You must login to SteamCMD manually once to cache credentials.");
+            
+            Err(anyhow!(
+                "New configuration created - please customize '{}' before running again", 
+                CONFIG_FILE
+            ))
         }
     }
 }

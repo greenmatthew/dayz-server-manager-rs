@@ -9,6 +9,9 @@ use lock::check_if_initialized;
 mod config;
 use config::Config;
 
+mod server;
+use server::ServerManager;
+
 mod steamcmd;
 use steamcmd::SteamCmdManager;
 
@@ -31,7 +34,7 @@ fn main() -> Result<()> {
     let config = Config::check_and_load(&server_install_dir)?;
 
     // Initialize SteamCMD manager with config and server install directory
-    let steamcmd_manager = SteamCmdManager::new(config, &server_install_dir);
+    let steamcmd_manager = SteamCmdManager::new(config.clone(), &server_install_dir);
     
     // Check and install SteamCMD if needed (always validates)
     steamcmd_manager.check_and_install()?;
@@ -39,8 +42,12 @@ fn main() -> Result<()> {
     // Update server (always validates)
     steamcmd_manager.update_server()?;
     
-    // Update mods (always validates)
+    // Update/validate mods
     steamcmd_manager.update_mods()?;
+
+    // Initialize and run the DayZ server
+    let server_manager = ServerManager::new(config.clone(), &server_install_dir);
+    server_manager.run_server()?;
     
     Ok(())
 }

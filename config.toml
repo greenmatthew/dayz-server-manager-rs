@@ -1,9 +1,0 @@
-[server]
-steamcmd_dir = "C:/SteamCMD"
-install_dir = "C:/DayZ Server"
-server_app_id = 223350
-game_app_id = 221100
-username = "username"
-
-[mods]
-mod_list = []

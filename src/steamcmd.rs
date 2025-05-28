@@ -3,7 +3,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::io::Cursor;
 use curl::easy::Easy;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 use crate::ui::status::{println_failure, println_step, println_success};
 use crate::ui::prompt::prompt_yes_no;
@@ -95,7 +95,10 @@ impl SteamCmdManager {
         
         self.run_steamcmd_with_args(args)?;
         
+        println!();
+        println!();
         println_success("Server update completed", 0);
+
         Ok(())
     }
 
@@ -233,30 +236,33 @@ impl SteamCmdManager {
         self.steamcmd_dir.join(STEAMCMD_EXE)
     }
 
-    /// Run SteamCMD with arguments as a vector
+    /// Run SteamCMD with arguments, allowing interactive input
     fn run_steamcmd_with_args(&self, args: Vec<&str>) -> Result<()> {
         let steamcmd_exe = self.get_exe_path();
         
         println_step(&format!("Running SteamCMD with args: {args:?}"), 2);
+        println!();
         
-        let output = Command::new(&steamcmd_exe)
+        // Use spawn() instead of output() to allow interactive input
+        let mut child = Command::new(&steamcmd_exe)
             .args(&args)
-            .output()
+            .stdin(Stdio::inherit())   // Allow user input
+            .stdout(Stdio::inherit())  // Show output directly
+            .stderr(Stdio::inherit())  // Show errors directly
+            .spawn()
             .context("Failed to execute SteamCMD")?;
         
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            
-            return Err(anyhow::anyhow!(
-                "SteamCMD failed with exit code: {:?}\nStdout: {}\nStderr: {}", 
-                output.status.code(), 
-                stdout, 
-                stderr
+        // Wait for the process to complete
+        let status = child.wait()
+            .context("Failed to wait for SteamCMD process")?;
+        
+        if !status.success() {
+            return Err(anyhow!(
+                "SteamCMD failed with exit code: {:?}", 
+                status.code()
             ));
         }
-        
-        println_success("SteamCMD command completed successfully", 2);
+
         Ok(())
     }
 }

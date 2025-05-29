@@ -82,8 +82,13 @@ impl SteamCmdManager {
         
         self.run_steamcmd_with_args(&args)?;
 
+        let mut mod_path = self.get_workshop_content_dir(app_id)
+            .join(workshop_id.to_string());
+        mod_path = std::path::absolute(mod_path)
+            .context("Failed to convert workshop directory to absolute path")?;
+
         // Return the path where SteamCMD cached the mod
-        Ok(self.get_workshop_content_dir(app_id).join(workshop_id.to_string()))
+        Ok(mod_path)
     }
 
     /// Get the path to the steamcmd executable

@@ -150,7 +150,7 @@ impl SteamCmdManager {
         println_step("Downloading SteamCMD...", 2);
         
         // Download the zip file
-        let zip_data = self.download_steamcmd_zip()?;
+        let zip_data = Self::download_steamcmd_zip()?;
         
         println_step("Extracting SteamCMD...", 2);
         
@@ -202,7 +202,7 @@ impl SteamCmdManager {
     }
 
     /// Download steamcmd zip file using curl
-    fn download_steamcmd_zip(&self) -> Result<Vec<u8>> {
+    fn download_steamcmd_zip() -> Result<Vec<u8>> {
         let mut data = Vec::new();
         let mut handle = Easy::new();
         

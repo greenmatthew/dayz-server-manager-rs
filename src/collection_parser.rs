@@ -43,16 +43,13 @@ impl SteamCollectionParser {
     
     /// Extract mod ID from Steam Workshop URL
     fn extract_mod_id_from_url(url: &str) -> Option<&str> {
-        // Look for pattern: ?id=1234567890
-        if let Some(id_start) = url.find("?id=") {
+        url.find("?id=").map(|id_start| {
             let id_part = &url[id_start + 4..]; // Skip "?id="
             
             // Find end of ID (either end of string or next parameter)
             let id_end = id_part.find('&').unwrap_or(id_part.len());
-            Some(&id_part[..id_end])
-        } else {
-            None
-        }
+            &id_part[..id_end]
+        })
     }
     
     /// Verify if the HTML appears to be a Steam Workshop collection page

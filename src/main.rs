@@ -34,7 +34,7 @@ fn main() -> Result<()> {
     // Check and load configuration - exits gracefully if config needs editing
     let config = Config::check_and_load(&server_install_dir)?;
 
-    let mut server_manager = ServerManager::new(config.clone(), &server_install_dir);
+    let mut server_manager = ServerManager::new(config, &server_install_dir);
 
     // Initialize SteamCMD
     server_manager.setup_steamcmd()?;

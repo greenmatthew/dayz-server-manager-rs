@@ -189,19 +189,20 @@ impl ServerManager {
     /// Get collection mods (cached)
     fn get_collection_mods(&self) -> &[ModEntry] {
         self.collection_mod_list.get_or_init(|| {
-            if let Some(collection_url) = &self.config.mods.mod_collection_url {
-                if collection_url.trim().is_empty() {
-                    Vec::new()
-                } else {
-                    CollectionFetcher::fetch_collection_mods(collection_url)
-                        .unwrap_or_else(|e| {
-                            println_failure(&format!("Failed to fetch collection: {e}"), 0);
-                            Vec::new()
-                        })
+            self.config.mods.mod_collection_url.as_ref().map_or_else(
+                Vec::new, 
+                |collection_url| {
+                    if collection_url.trim().is_empty() {
+                        Vec::new()
+                    } else {
+                        CollectionFetcher::fetch_collection_mods(collection_url)
+                            .unwrap_or_else(|e| {
+                                println_failure(&format!("Failed to fetch collection: {e}"), 0);
+                                Vec::new()
+                            })
+                    }
                 }
-            } else {
-                Vec::new()
-            }
+            )
         })
     }
 

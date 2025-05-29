@@ -64,7 +64,7 @@ impl SteamCmdManager {
         workshop_id: u64, 
         validate: bool
     ) -> Result<PathBuf> {
-        println_step(&format!("Installing/updating workshop item: {}", workshop_id), 2);
+        println_step(&format!("Installing/updating workshop item: {workshop_id}"), 2);
         
         let mut args = vec![
             "+login".to_string(),
@@ -182,7 +182,7 @@ impl SteamCmdManager {
     fn run_steamcmd_with_args(&self, args: &[String]) -> Result<()> {
         let steamcmd_exe = self.get_exe_path();
         
-        println_step(&format!("Running SteamCMD with args: {:?}", args), 2);
+        println_step(&format!("Running SteamCMD with args: {args:?}"), 2);
         println!();
         
         // Use spawn() instead of output() to allow interactive input

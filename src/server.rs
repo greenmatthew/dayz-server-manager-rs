@@ -1,4 +1,6 @@
 use anyhow::{Context, Result, anyhow};
+use std::os::windows::fs::symlink_dir;
+use std::fs;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::cell::OnceCell;
@@ -11,6 +13,7 @@ use crate::config::Config;
 use crate::collection_fetcher::CollectionFetcher;
 
 const SERVER_EXE: &str = "DayZServer_x64.exe";
+const SERVER_KEYS: &str = "keys";
 const SERVER_CONFIG: &str = "serverDZ.cfg";
 const SERVER_PROFILES: &str = "profiles";
 
@@ -48,30 +51,54 @@ impl ServerManager {
         let steamcmd = self.steamcmd_manager.as_ref().unwrap();
         let server_config = &self.config.server;  // Take reference
 
-        // Fix the method call
         steamcmd.install_or_update_app(
             &self.server_install_dir.to_string_lossy(),  // Convert PathBuf to &str
-            &server_config.username,        // Pass as reference
-            server_config.server_app_id,    // Use server_app_id, not game_app_id
-            true                           // validate parameter
-        )?;  // Handle the Result with ?
+            &server_config.username,
+            server_config.server_app_id,
+            true
+        )?; 
 
         Ok(())
     }
 
     pub fn install_or_update_mods(&self) -> Result<()> {
-        let mod_list = self.get_individual_mods();
-        if !mod_list.is_empty() {
-            for mod_entry in mod_list {
-                self.install_mod(mod_entry.id, &mod_entry.name);
+        self.uninstall_prev_mod_installations();
+
+        let individual_mods = self.get_individual_mods();
+        let collection_mods = self.get_collection_mods();
+        
+        // Check if we have any mods to install
+        if individual_mods.is_empty() && collection_mods.is_empty() {
+            println_success("No mods configured, skipping mod installation", 0);
+            return Ok(());
+        }
+
+        let mut failed_mods = Vec::new();
+
+        // Install individual mods
+        for mod_entry in individual_mods {
+            if let Err(e) = self.install_mod(mod_entry.id, &mod_entry.name) {
+                println_failure(&format!("Failed to install mod {}: {}", mod_entry.name, e), 0);
+                failed_mods.push(mod_entry.name.clone());
             }
         }
 
-        let collection_mod_list: &[ModEntry] = self.get_collection_mods();
-        if !collection_mod_list.is_empty() {
-            for mod_entry in collection_mod_list {
-                self.install_mod(mod_entry.id, &mod_entry.name);
+        // Install collection mods
+        for mod_entry in collection_mods {
+            if let Err(e) = self.install_mod(mod_entry.id, &mod_entry.name) {
+                println_failure(&format!("Failed to install mod {}: {}", mod_entry.name, e), 0);
+                failed_mods.push(mod_entry.name.clone());
             }
+        }
+
+        // Report results
+        if failed_mods.is_empty() {
+            println_success("All mods installed successfully", 0);
+        } else {
+            println_failure(&format!("Failed to install {} mod(s): {}", 
+                failed_mods.len(), 
+                failed_mods.join(", ")), 0);
+            return Err(anyhow!("Some mods failed to install. Check SteamCMD output above for details."));
         }
 
         Ok(())
@@ -104,6 +131,53 @@ impl ServerManager {
         
         println_success("DayZ server has stopped", 0);
         Ok(())
+    }
+
+    /// Clean up all previous mod installations before installing new ones
+    fn uninstall_prev_mod_installations(&self) {
+        println_step("Cleaning up previous mod installations...", 1);
+        
+        // Remove all @* directories
+        self.cleanup_mod_directories();
+        
+        // Clear keys directory
+        self.cleanup_keys_directory();
+        
+        println_success("Previous mod installations cleaned up", 2);
+    }
+
+    /// Remove all @* directories from server install directory
+    fn cleanup_mod_directories(&self) {
+        if let Ok(entries) = fs::read_dir(&self.server_install_dir) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                    if name.starts_with('@') {
+                        println_step(&format!("Removing: {name}"), 1);
+                        let _ = fs::remove_dir_all(&path);
+                    }
+                }
+            }
+        }
+    }
+
+    /// Remove all contents from keys directory except dayz.bikey
+    fn cleanup_keys_directory(&self) {
+        let keys_dir = self.server_install_dir.join("keys");
+        if keys_dir.exists() {
+            println_step("Clearing keys directory (keeping dayz.bikey)...", 2);
+            if let Ok(entries) = fs::read_dir(&keys_dir) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if let Some(filename) = path.file_name().and_then(|n| n.to_str()) {
+                        // Skip dayz.bikey (case insensitive)
+                        if filename.to_lowercase() != "dayz.bikey" {
+                            let _ = fs::remove_file(path);
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /// Get individual mods from config
@@ -148,17 +222,33 @@ impl ServerManager {
         let steamcmd = self.steamcmd_manager.as_ref().unwrap();
         let server_config = &self.config.server;  // Take reference
 
-        let mod_cache_path = steamcmd.download_or_update_mod(
+        println_step(&format!("Attempting to install {name} ({workshop_id})..."), 2);
+        println_step("Downloading...", 3);
+
+        let mod_source_path = steamcmd.download_or_update_mod(
             &server_config.username,        // Pass as reference
-            server_config.server_app_id,    // Use server_app_id, not game_app_id
+            server_config.game_app_id,
             workshop_id,
             true                   // validate parameter
         )?;
 
-        println!("Source: {mod_cache_path:?}");
-        println!("Target: {:?}", self.server_install_dir.join(format!("@{name}")));
+        println_step("Installing...", 4);
+
+        let mod_target_path = self.server_install_dir
+            .join(format!("@{name}"));
+
+        println!("Source: {mod_source_path:?}");
+        println!("Target: {mod_target_path:?}");
+
+        if symlink_dir(mod_source_path, mod_target_path).is_err() {
+            return Err(anyhow!("Failed to create a symlink."));
+        }
 
         Ok(())
+    }
+
+    fn get_server_keys_path(&self) -> PathBuf {
+        self.server_install_dir.join(SERVER_KEYS)
     }
 
     /// Get the full path to the DayZ server executable

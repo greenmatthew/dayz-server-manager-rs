@@ -60,7 +60,19 @@ impl ServerManager {
     }
 
     pub fn install_or_update_mods(&self) -> Result<()> {
-        
+        let mod_list = self.get_individual_mods();
+        if !mod_list.is_empty() {
+            for mod_entry in mod_list {
+                self.install_mod(mod_entry.id, &mod_entry.name);
+            }
+        }
+
+        let collection_mod_list: &[ModEntry] = self.get_collection_mods();
+        if !collection_mod_list.is_empty() {
+            for mod_entry in collection_mod_list {
+                self.install_mod(mod_entry.id, &mod_entry.name);
+            }
+        }
 
         Ok(())
     }
@@ -103,14 +115,14 @@ impl ServerManager {
     fn get_collection_mods(&self) -> &[ModEntry] {
         self.collection_mod_list.get_or_init(|| {
             if let Some(collection_url) = &self.config.mods.mod_collection_url {
-                if !collection_url.trim().is_empty() {
+                if collection_url.trim().is_empty() {
+                    Vec::new()
+                } else {
                     CollectionFetcher::fetch_collection_mods(collection_url)
                         .unwrap_or_else(|e| {
-                            println_failure(&format!("Failed to fetch collection: {}", e), 0);
+                            println_failure(&format!("Failed to fetch collection: {e}"), 0);
                             Vec::new()
                         })
-                } else {
-                    Vec::new()
                 }
             } else {
                 Vec::new()
@@ -144,7 +156,7 @@ impl ServerManager {
         )?;
 
         println!("Source: {mod_cache_path:?}");
-        println!("Target: {:?}", self.server_install_dir.join(format!("@{}", name)));
+        println!("Target: {:?}", self.server_install_dir.join(format!("@{name}")));
 
         Ok(())
     }

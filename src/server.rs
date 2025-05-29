@@ -51,12 +51,16 @@ impl ServerManager {
         let steamcmd = self.steamcmd_manager.as_ref().unwrap();
         let server_config = &self.config.server;  // Take reference
 
+        println_step("Installing or updating DayZ Server application...\n", 1);
+        
         steamcmd.install_or_update_app(
             &self.server_install_dir.to_string_lossy(),  // Convert PathBuf to &str
             &server_config.username,
             server_config.server_app_id,
             true
         )?; 
+
+        println!();
 
         Ok(())
     }
@@ -143,7 +147,7 @@ impl ServerManager {
         
         // Clear keys directory
         self.cleanup_keys_directory();
-        
+
         println_success("Previous mod installations cleaned up", 2);
     }
 
@@ -214,6 +218,9 @@ impl ServerManager {
         all_mods
     }
 
+    /// Installs a mod by downloading or updating its SteamCMD instance
+    /// Then symlinking the instance and its keys to the server install dir
+    #[allow(clippy::doc_markdown)]
     fn install_mod(&self, workshop_id: u64, name: &str) -> Result<()> {
         // Ensure SteamCMD is setup
         if self.steamcmd_manager.is_none() {
@@ -225,7 +232,7 @@ impl ServerManager {
         let server_config = &self.config.server;
 
         println_step(&format!("Attempting to install {name} ({workshop_id})..."), 2);
-        println_step("Downloading...", 3);
+        println_step("Downloading...\n", 3);
 
         let mod_source_path = steamcmd.download_or_update_mod(
             &server_config.username,
@@ -234,6 +241,7 @@ impl ServerManager {
             true
         )?;
 
+        println!();
         println_step("Installing...", 4);
 
         let mod_target_path = self.server_install_dir

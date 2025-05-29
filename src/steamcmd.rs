@@ -37,8 +37,6 @@ impl SteamCmdManager {
         app_id: u32, 
         validate: bool
     ) -> Result<()> {
-        println_step(&format!("Installing/updating app ID: {app_id}"), 1);
-        
         let mut args = vec![
             "+force_install_dir".to_string(),
             install_dir.to_string(),
@@ -65,8 +63,6 @@ impl SteamCmdManager {
         workshop_id: u64, 
         validate: bool
     ) -> Result<PathBuf> {
-        println_step(&format!("Installing/updating workshop item: {workshop_id}"), 2);
-        
         let mut args = vec![
             "+login".to_string(),
             username.to_string(),
@@ -167,8 +163,7 @@ impl SteamCmdManager {
     fn run_steamcmd_with_args(&self, args: &[String]) -> Result<()> {
         let steamcmd_exe = self.get_exe_path();
         
-        println_step(&format!("Running SteamCMD with args: {args:?}"), 2);
-        println!();
+        println!("Running SteamCMD with args: {args:?}");
         
         // Use spawn() instead of output() to allow interactive input
         let mut child = Command::new(&steamcmd_exe)

@@ -16,14 +16,14 @@ pub struct SteamCmdManager {
 }
 
 impl SteamCmdManager {
-    /// Create a new SteamCmdManager and ensure SteamCMD is installed
+    /// Create a new SteamCmdManager and ensure steamcmd is installed
     pub fn new(steamcmd_dir: &str) -> Result<Self> {
         let steamcmd_dir_path = PathBuf::from(steamcmd_dir);
         let manager = Self {
             steamcmd_dir: steamcmd_dir_path,
         };
         
-        // Check and install SteamCMD during construction
+        // Check and install steamcmd during construction
         manager.check_and_install()?;
         Ok(manager)
     }
@@ -87,7 +87,7 @@ impl SteamCmdManager {
         mod_path = std::path::absolute(mod_path)
             .context("Failed to convert workshop directory to absolute path")?;
 
-        // Return the path where SteamCMD cached the mod
+        // Return the path where steamcmd cached the mod
         Ok(mod_path)
     }
 
@@ -105,7 +105,7 @@ impl SteamCmdManager {
             .join(game_app_id.to_string())
     }
 
-    /// Check if SteamCMD is installed and handle installation if needed
+    /// Check if steamcmd is installed and handle installation if needed
     fn check_and_install(&self) -> Result<()> {
         let steamcmd_exe_path = self.get_exe_path();
 
@@ -191,7 +191,7 @@ impl SteamCmdManager {
         Ok(())
     }
 
-    /// Check if the SteamCMD directory is empty
+    /// Check if the steamcmd directory is empty
     fn is_directory_empty(&self) -> Result<bool> {
         let entries = fs::read_dir(&self.steamcmd_dir)
             .context("Failed to read SteamCMD directory")?;
@@ -199,7 +199,7 @@ impl SteamCmdManager {
         Ok(entries.count() == 0)
     }
 
-    /// Download SteamCMD zip file using curl
+    /// Download steamcmd zip file using curl
     fn download_steamcmd_zip(&self) -> Result<Vec<u8>> {
         let mut data = Vec::new();
         let mut handle = Easy::new();
@@ -231,7 +231,7 @@ impl SteamCmdManager {
         Ok(data)
     }
 
-    /// Extract zip file to SteamCMD directory
+    /// Extract zip file to steamcmd directory
     fn extract_zip(&self, zip_data: Vec<u8>) -> Result<()> {
         use zip::ZipArchive;
         use std::io::Read;

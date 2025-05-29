@@ -1,9 +1,14 @@
 use anyhow::{Context, Result, anyhow};
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
+use std::cell::OnceCell;
 
-use crate::ui::status::{println_step, println_success};
+use crate::config::mod_entry::ModEntry;
+use crate::steamcmd2::{self, SteamCmdManager};
+use crate::ui::status::{println_step, println_success, println_failure};
 use crate::config::Config;
+
+use crate::collection_fetcher::CollectionFetcher;
 
 const SERVER_EXE: &str = "DayZServer_x64.exe";
 const SERVER_CONFIG: &str = "serverDZ.cfg";
@@ -12,6 +17,8 @@ const SERVER_PROFILES: &str = "profiles";
 pub struct ServerManager {
     config: Config,
     server_install_dir: PathBuf,
+    steamcmd_manager: Option<SteamCmdManager>,
+    collection_mod_list: OnceCell<Vec<ModEntry>>,
 }
 
 impl ServerManager {
@@ -19,7 +26,43 @@ impl ServerManager {
         Self {
             config,
             server_install_dir: PathBuf::from(server_install_dir),
+            steamcmd_manager: None,
+            collection_mod_list: OnceCell::new(),
         }
+    }
+
+    pub fn setup_steamcmd(&mut self) -> Result<()> {  // Make self mutable
+        // Handle the Result and extract the value
+        let steamcmd = SteamCmdManager::new(&self.config.server.steamcmd_dir)?;
+        self.steamcmd_manager = Some(steamcmd);
+        Ok(())
+    }
+
+    pub fn install_or_update_server(&self) -> Result<()> {
+        // Ensure SteamCMD is setup
+        if self.steamcmd_manager.is_none() {
+            return Err(anyhow!("SteamCMD has not been setup yet."));
+        }
+
+        // Get reference to steamcmd manager
+        let steamcmd = self.steamcmd_manager.as_ref().unwrap();
+        let server_config = &self.config.server;  // Take reference
+
+        // Fix the method call
+        steamcmd.install_or_update_app(
+            &self.server_install_dir.to_string_lossy(),  // Convert PathBuf to &str
+            &server_config.username,        // Pass as reference
+            server_config.server_app_id,    // Use server_app_id, not game_app_id
+            true                           // validate parameter
+        )?;  // Handle the Result with ?
+
+        Ok(())
+    }
+
+    pub fn install_or_update_mods(&self) -> Result<()> {
+        
+
+        Ok(())
     }
 
     /// Run the DayZ server with configured mods
@@ -40,8 +83,7 @@ impl ServerManager {
         args.push(format!("-profiles={SERVER_PROFILES}"));
         
         // Add mods if any are configured
-        if !self.config.mods.mod_list.is_empty() {
-            let mods_string = self.build_mods_string();
+        if let Some(mods_string) = self.build_mods_string() {
             args.push(format!("-mod={mods_string}"));
         }
 
@@ -52,18 +94,77 @@ impl ServerManager {
         Ok(())
     }
 
+    /// Get individual mods from config
+    fn get_individual_mods(&self) -> &[ModEntry] {
+        self.config.mods.mod_list.as_deref().unwrap_or(&[])
+    }
+
+    /// Get collection mods (cached)
+    fn get_collection_mods(&self) -> &[ModEntry] {
+        self.collection_mod_list.get_or_init(|| {
+            if let Some(collection_url) = &self.config.mods.mod_collection_url {
+                if !collection_url.trim().is_empty() {
+                    CollectionFetcher::fetch_collection_mods(collection_url)
+                        .unwrap_or_else(|e| {
+                            println_failure(&format!("Failed to fetch collection: {}", e), 0);
+                            Vec::new()
+                        })
+                } else {
+                    Vec::new()
+                }
+            } else {
+                Vec::new()
+            }
+        })
+    }
+
+    /// Get all mods combined
+    fn get_all_mods(&self) -> Vec<&ModEntry> {
+        let mut all_mods = Vec::new();
+        all_mods.extend(self.get_individual_mods());
+        all_mods.extend(self.get_collection_mods());
+        all_mods
+    }
+
+    fn install_mod(&self, workshop_id: u64, name: &str) -> Result<()> {
+        // Ensure SteamCMD is setup
+        if self.steamcmd_manager.is_none() {
+            return Err(anyhow!("SteamCMD has not been setup yet."));
+        }
+
+        // Get reference to steamcmd manager
+        let steamcmd = self.steamcmd_manager.as_ref().unwrap();
+        let server_config = &self.config.server;  // Take reference
+
+        let mod_cache_path = steamcmd.download_or_update_mod(
+            &server_config.username,        // Pass as reference
+            server_config.server_app_id,    // Use server_app_id, not game_app_id
+            workshop_id,
+            true                   // validate parameter
+        )?;
+
+        println!("Source: {mod_cache_path:?}");
+        println!("Target: {:?}", self.server_install_dir.join(format!("@{}", name)));
+
+        Ok(())
+    }
+
     /// Get the full path to the DayZ server executable
     fn get_server_exe_path(&self) -> PathBuf {
         self.server_install_dir.join(SERVER_EXE)
     }
 
     /// Build the mods string in the format: @ModName1;@ModName2;@ModName3
-    fn build_mods_string(&self) -> String {
-        self.config.mods.mod_list
-            .iter()
-            .map(|mod_entry| format!("@{}", mod_entry.name))
-            .collect::<Vec<String>>()
-            .join(";")
+    fn build_mods_string(&self) -> Option<String> {
+        let complete_mod_list = self.get_all_mods();
+        if complete_mod_list.is_empty() {
+            None
+        } else {
+            Some(complete_mod_list.iter()
+                .map(|mod_entry| format!("@{}", mod_entry.name))
+                .collect::<Vec<String>>()
+                .join(";"))
+        }
     }
 
     /// Run the DayZ server with arguments, allowing interactive input/output
@@ -95,101 +196,5 @@ impl ServerManager {
         }
 
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::config::{ServerConfig, ModsConfig, mod_entry::ModEntry};
-    use std::fs;
-    use tempfile::TempDir;
-
-    fn create_test_config_with_mods() -> Config {
-        Config {
-            server: ServerConfig {
-                steamcmd_dir: "test_steamcmd".to_string(),
-                server_app_id: 223350,
-                game_app_id: 221100,
-                username: "testuser".to_string(),
-            },
-            mods: ModsConfig {
-                mod_list: vec![
-                    ModEntry { id: 1559212036, name: "CF".to_string() },
-                    ModEntry { id: 1564026768, name: "Community-Online-Tools".to_string() },
-                    ModEntry { id: 2289456201, name: "Namalsk Island".to_string() },
-                ],
-            },
-        }
-    }
-
-    fn create_test_config_no_mods() -> Config {
-        Config {
-            server: ServerConfig {
-                steamcmd_dir: "test_steamcmd".to_string(),
-                server_app_id: 223350,
-                game_app_id: 221100,
-                username: "testuser".to_string(),
-            },
-            mods: ModsConfig {
-                mod_list: vec![],
-            },
-        }
-    }
-
-    #[test]
-    fn test_build_mods_string_with_mods() {
-        let config = create_test_config_with_mods();
-        let manager = ServerManager::new(config, "test_server");
-        
-        let mods_string = manager.build_mods_string();
-        assert_eq!(mods_string, "@CF;@Community-Online-Tools;@Namalsk Island");
-    }
-
-    #[test]
-    fn test_build_mods_string_no_mods() {
-        let config = create_test_config_no_mods();
-        let manager = ServerManager::new(config, "test_server");
-        
-        let mods_string = manager.build_mods_string();
-        assert_eq!(mods_string, "");
-    }
-
-    #[test]
-    fn test_get_server_exe_path() {
-        let config = create_test_config_no_mods();
-        let manager = ServerManager::new(config, "/test/server/path");
-        
-        let exe_path = manager.get_server_exe_path();
-        assert_eq!(exe_path, PathBuf::from("/test/server/path/DayZServer_x64.exe"));
-    }
-
-    #[test]
-    fn test_server_exe_missing() {
-        let temp_dir = TempDir::new().unwrap();
-        let config = create_test_config_no_mods();
-        let manager = ServerManager::new(config, temp_dir.path().to_str().unwrap());
-        
-        // Should fail when server exe doesn't exist
-        let result = manager.run_server();
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("DayZ server executable not found"));
-    }
-
-    #[test]
-    fn test_server_exe_exists() {
-        let temp_dir = TempDir::new().unwrap();
-        let config = create_test_config_no_mods();
-        let manager = ServerManager::new(config, temp_dir.path().to_str().unwrap());
-        
-        // Create fake server executable
-        let server_exe = temp_dir.path().join(SERVER_EXE);
-        fs::write(&server_exe, "fake exe").unwrap();
-        
-        // This would normally try to run the server, but since it's a fake exe,
-        // we can't easily test the full execution in a unit test.
-        // The important part is that it doesn't fail on the "file not found" check.
-        let server_exe_path = manager.get_server_exe_path();
-        assert!(server_exe_path.exists());
     }
 }

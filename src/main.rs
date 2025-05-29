@@ -9,11 +9,8 @@ use lock::check_if_initialized;
 mod config;
 use config::Config;
 
-mod steamcmd;
-use steamcmd::SteamCmdManager;
-
-mod mods;
-use mods::ModsManager;
+mod steamcmd2;
+use steamcmd2::SteamCmdManager;
 
 mod server;
 use server::ServerManager;
@@ -41,26 +38,24 @@ fn main() -> Result<()> {
     // Check and load configuration - exits gracefully if config needs editing
     let config = Config::check_and_load(&server_install_dir)?;
 
-    // Initialize SteamCMD manager with config and server install directory
-    let steamcmd_manager = SteamCmdManager::new(config.clone(), &server_install_dir);
-    
-    // Check and install SteamCMD if needed (always validates)
-    steamcmd_manager.check_and_install()?;
-    
-    // Update server (always validates)
-    steamcmd_manager.update_server()?;
-    
-    // Update/validate mods
-    steamcmd_manager.update_mods()?;
+    let mut server_manager = ServerManager::new(config.clone(), &server_install_dir);
+
+    // Initialize SteamCMD
+    server_manager.setup_steamcmd();
 
     // Initialize mods manager and install/update mods
-    let mods_manager = ModsManager::new(config.clone(), &server_install_dir);
-    mods_manager.cleanup_unused_mods()?;
-    mods_manager.install_mods()?;
+    // let mods_manager = ModsManager::new(config.clone(), &server_install_dir);
+    // mods_manager.cleanup_unused_mods()?;
+    // mods_manager.install_mods()?;
 
-    // Initialize and run the DayZ server
-    let server_manager = ServerManager::new(config.clone(), &server_install_dir);
-    server_manager.run_server()?;
+    // Update server (always validates)
+    server_manager.install_or_update_server();
+
+    // Update/validate mods
+    server_manager.install_or_update_mods();
+
+    // Run the DayZ server
+    server_manager.run_server();
     
     Ok(())
 }

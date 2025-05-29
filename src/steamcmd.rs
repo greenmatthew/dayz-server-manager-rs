@@ -16,7 +16,7 @@ pub struct SteamCmdManager {
 }
 
 impl SteamCmdManager {
-    /// Create a new SteamCmdManager and ensure steamcmd is installed
+    /// Create a new ``SteamCmdManager`` and ensure steamcmd is installed
     pub fn new(steamcmd_dir: &str) -> Result<Self> {
         let steamcmd_dir_path = PathBuf::from(steamcmd_dir);
         let manager = Self {

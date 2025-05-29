@@ -270,10 +270,16 @@ impl ServerManager {
                                 if let Some(filename) = key_file_path.file_name() {
                                     let target_key_path = server_keys_path.join(filename);
                                     
+                                    // Check if the target key file already exists
+                                    if target_key_path.exists() {
+                                        println_step(&format!("Key already exists, skipping: {}", filename.to_string_lossy()), 6);
+                                        continue;
+                                    }
+                                    
                                     // Use symlink_file for individual files
-                                    if symlink_file(&key_file_path, &target_key_path).is_err() {
+                                    if let Err(e) = symlink_file(&key_file_path, &target_key_path) {
                                         return Err(anyhow!(
-                                            "Failed to create key file symlink from {key_file_path:?} to {target_key_path:?}"
+                                            "Failed to create key file symlink from {key_file_path:?} to {target_key_path:?}: {e}"
                                         ));
                                     }
                                     
@@ -325,7 +331,7 @@ impl ServerManager {
     fn run_server_with_args(&self, args: &[String]) -> Result<()> {
         let server_exe_path = self.get_server_exe_path();
         
-        println_step(&format!("Executing: {} {}", SERVER_EXE, args.join(" ")), 2);
+        println_step(&format!("Executing: {} {}", SERVER_EXE, args.join(" ")), 1);
         println!();
         
         // Use spawn() to allow interactive input/output (server console, etc.)

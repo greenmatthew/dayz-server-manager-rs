@@ -1,5 +1,6 @@
 use anyhow::{Context, Result, anyhow};
 use std::os::windows::fs::symlink_dir;
+use std::os::windows::fs::symlink_file;
 use std::fs;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -220,16 +221,16 @@ impl ServerManager {
 
         // Get reference to steamcmd manager
         let steamcmd = self.steamcmd_manager.as_ref().unwrap();
-        let server_config = &self.config.server;  // Take reference
+        let server_config = &self.config.server;
 
         println_step(&format!("Attempting to install {name} ({workshop_id})..."), 2);
         println_step("Downloading...", 3);
 
         let mod_source_path = steamcmd.download_or_update_mod(
-            &server_config.username,        // Pass as reference
+            &server_config.username,
             server_config.game_app_id,
             workshop_id,
-            true                   // validate parameter
+            true
         )?;
 
         println_step("Installing...", 4);
@@ -237,13 +238,53 @@ impl ServerManager {
         let mod_target_path = self.server_install_dir
             .join(format!("@{name}"));
 
-        println!("Source: {mod_source_path:?}");
-        println!("Target: {mod_target_path:?}");
-
-        if symlink_dir(mod_source_path, mod_target_path).is_err() {
-            return Err(anyhow!("Failed to create a symlink."));
+        if symlink_dir(&mod_source_path, &mod_target_path).is_err() {
+            return Err(anyhow!("Failed to create a directory symlink from {mod_source_path:?} to {mod_target_path:?}."));
         }
 
+        // Handle mod keys - symlink individual .bikey files to server keys directory
+        let mod_source_keys_path = mod_source_path.join("keys");
+        let server_keys_path = self.get_server_keys_path();
+
+        if mod_source_keys_path.exists() {
+            println_step("Installing mod keys...", 5);
+            
+            // Read the keys directory
+            match fs::read_dir(&mod_source_keys_path) {
+                Ok(entries) => {
+                    for entry in entries.flatten() {
+                        let key_file_path = entry.path();
+                        
+                        // Only process .bikey files
+                        if let Some(extension) = key_file_path.extension() {
+                            if extension.to_string_lossy().to_lowercase() == "bikey" {
+                                if let Some(filename) = key_file_path.file_name() {
+                                    let target_key_path = server_keys_path.join(filename);
+                                    
+                                    // Use symlink_file for individual files
+                                    if std::os::windows::fs::symlink_file(&key_file_path, &target_key_path).is_err() {
+                                        return Err(anyhow!(
+                                            "Failed to create key file symlink from {key_file_path:?} to {target_key_path:?}"
+                                        ));
+                                    }
+                                    
+                                    println_step(&format!("Linked key: {}", filename.to_string_lossy()), 6);
+                                }
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    return Err(anyhow!(
+                        "Failed to read keys directory {mod_source_keys_path:?}: {e}"
+                    ));
+                }
+            }
+        } else {
+            println_step("No keys required for this mod (client-side or configuration mod)", 5);
+        }
+
+        println_success(&format!("Successfully installed {name}"), 2);
         Ok(())
     }
 

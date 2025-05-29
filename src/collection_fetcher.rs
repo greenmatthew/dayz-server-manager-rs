@@ -1,8 +1,7 @@
-// src/collection_fetcher.rs
 use anyhow::{Context, Result, anyhow};
 use curl::easy::Easy;
 use crate::collection_parser::SteamCollectionParser;
-use crate::ui::status::{println_step, println_success, println_failure};
+use crate::ui::status::{println_step, println_success};
 use crate::config::mod_entry::ModEntry;
 
 pub struct CollectionFetcher;
@@ -10,7 +9,7 @@ pub struct CollectionFetcher;
 impl CollectionFetcher {
     /// Fetch and parse a Steam Workshop collection by URL
     pub fn fetch_collection_mods(collection_url: &str) -> Result<Vec<ModEntry>> {
-        println_step(&format!("Fetching collection: {}", collection_url), 1);
+        println_step(&format!("Fetching collection: {collection_url}"), 1);
         
         // Validate URL format
         if !collection_url.contains("steamcommunity.com") || !collection_url.contains("filedetails") {
@@ -27,7 +26,7 @@ impl CollectionFetcher {
         
         // Get collection title for user feedback
         if let Some(title) = SteamCollectionParser::get_collection_title(&html_content) {
-            println_step(&format!("Found collection: '{}'", title), 2);
+            println_step(&format!("Found collection: '{title}'"), 2);
         }
         
         // Parse the mods

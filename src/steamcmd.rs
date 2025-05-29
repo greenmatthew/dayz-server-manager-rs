@@ -7,29 +7,106 @@ use std::process::{Command, Stdio};
 
 use crate::ui::status::{println_failure, println_step, println_success};
 use crate::ui::prompt::prompt_yes_no;
-use crate::config::Config;
 
 const STEAMCMD_EXE: &str = "steamcmd.exe";
 const STEAMCMD_DOWNLOAD_URL: &str = "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip";
 
 pub struct SteamCmdManager {
-    config: Config,
-    server_install_dir: PathBuf,
     steamcmd_dir: PathBuf,
 }
 
 impl SteamCmdManager {
-    pub fn new(config: Config, server_install_dir: &str) -> Self {
-        let steamcmd_dir = PathBuf::from(&config.server.steamcmd_dir);
-        Self {
-            config,
-            server_install_dir: PathBuf::from(server_install_dir),
-            steamcmd_dir,
+    /// Create a new SteamCmdManager and ensure SteamCMD is installed
+    pub fn new(steamcmd_dir: &str) -> Result<Self> {
+        let steamcmd_dir_path = PathBuf::from(steamcmd_dir);
+        let manager = Self {
+            steamcmd_dir: steamcmd_dir_path,
+        };
+        
+        // Check and install SteamCMD during construction
+        manager.check_and_install()?;
+        Ok(manager)
+    }
+
+    /// Install or update a Steam application (like DayZ server)
+    pub fn install_or_update_app(
+        &self, 
+        install_dir: &str, 
+        username: &str, 
+        app_id: u32, 
+        validate: bool
+    ) -> Result<()> {
+        println_step(&format!("Installing/updating app ID: {app_id}"), 1);
+        
+        let mut args = vec![
+            "+force_install_dir".to_string(),
+            install_dir.to_string(),
+            "+login".to_string(),
+            username.to_string(),
+            "+app_update".to_string(),
+            app_id.to_string(),
+        ];
+        
+        if validate {
+            args.push("validate".to_string());
         }
+        
+        args.push("+quit".to_string());
+        
+        self.run_steamcmd_with_args(&args)
+    }
+
+    /// Install or update a Steam Workshop mod
+    pub fn download_or_update_mod(
+        &self, 
+        username: &str, 
+        app_id: u32, 
+        workshop_id: u64, 
+        validate: bool
+    ) -> Result<PathBuf> {
+        println_step(&format!("Installing/updating workshop item: {workshop_id}"), 2);
+        
+        let mut args = vec![
+            "+login".to_string(),
+            username.to_string(),
+            "+workshop_download_item".to_string(),
+            app_id.to_string(),
+            workshop_id.to_string(),
+        ];
+        
+        if validate {
+            args.push("validate".to_string());
+        }
+        
+        args.push("+quit".to_string());
+        
+        self.run_steamcmd_with_args(&args)?;
+
+        let mut mod_path = self.get_workshop_content_dir(app_id)
+            .join(workshop_id.to_string());
+        mod_path = std::path::absolute(mod_path)
+            .context("Failed to convert workshop directory to absolute path")?;
+
+        // Return the path where SteamCMD cached the mod
+        Ok(mod_path)
+    }
+
+    /// Get the path to the steamcmd executable
+    pub fn get_exe_path(&self) -> PathBuf {
+        self.steamcmd_dir.join(STEAMCMD_EXE)
+    }
+
+    /// Get workshop content directory for a specific game
+    pub fn get_workshop_content_dir(&self, game_app_id: u32) -> PathBuf {
+        self.steamcmd_dir
+            .join("steamapps")
+            .join("workshop")
+            .join("content")
+            .join(game_app_id.to_string())
     }
 
     /// Check if SteamCMD is installed and handle installation if needed
-    pub fn check_and_install(&self) -> Result<()> {
+    fn check_and_install(&self) -> Result<()> {
         let steamcmd_exe_path = self.get_exe_path();
 
         // Check if steamcmd.exe exists
@@ -68,82 +145,6 @@ impl SteamCmdManager {
         Ok(())
     }
 
-    /// Update the DayZ server (always with validation)
-    pub fn update_server(&self) -> Result<()> {
-        println_step("Updating DayZ server...", 1);
-        
-        // Create server directory if it doesn't exist
-        if !self.server_install_dir.exists() {
-            println_step(&format!("Creating server directory: {}", self.server_install_dir.display()), 2);
-            fs::create_dir_all(&self.server_install_dir)
-                .context("Failed to create server directory")?;
-        }
-        
-        let install_dir_str = self.server_install_dir.to_string_lossy().to_string();
-        let server_app_id_str = self.config.server.server_app_id.to_string();
-        
-        let args = vec![
-            "+force_install_dir",
-            &install_dir_str,
-            "+login",
-            &self.config.server.username,
-            "+app_update",
-            &server_app_id_str,
-            "validate", // Always validate as requested
-            "+quit",
-        ];
-        
-        self.run_steamcmd_with_args(args)?;
-        
-        println!();
-        println_success("Server update completed", 0);
-
-        Ok(())
-    }
-
-    /// Update mods from the configuration
-    pub fn update_mods(&self) -> Result<()> {
-        if self.config.mods.mod_list.is_empty() {
-            println_success("No mods configured, skipping mod updates", 0);
-            return Ok(());
-        }
-
-        println_step(&format!("Updating/validating {} mod(s)...", self.config.mods.mod_list.len()), 1);
-        
-        for mod_entry in &self.config.mods.mod_list {
-            println_step(&format!("Updating/validating mod: {} ({})", mod_entry.name, mod_entry.id), 2);
-            
-            let mod_id_str = mod_entry.id.to_string();
-            let game_app_id_str = self.config.server.game_app_id.to_string();
-            
-            let args = vec![
-                "+login",
-                &self.config.server.username,
-                "+workshop_download_item",
-                &game_app_id_str,
-                &mod_id_str,
-                "validate", // Always validate
-                "+quit",
-            ];
-            
-            self.run_steamcmd_with_args(args)?;
-        }
-        
-        println!();
-        println!();
-        println_success("Mod updates/validation completed", 0);
-        Ok(())
-    }
-
-    /// Check if the SteamCMD directory is empty
-    fn is_directory_empty(&self) -> Result<bool> {
-        let entries = fs::read_dir(&self.steamcmd_dir)
-            .context("Failed to read SteamCMD directory")?;
-        
-        Ok(entries.count() == 0)
-    }
-
-    /// Download and install SteamCMD
     fn download_and_install(&self) -> Result<()> {
         println_step("Downloading SteamCMD...", 2);
         
@@ -158,6 +159,44 @@ impl SteamCmdManager {
         println_success("SteamCMD extraction complete", 2);
         
         Ok(())
+    }
+
+    /// Run SteamCMD with arguments, allowing interactive input
+    fn run_steamcmd_with_args(&self, args: &[String]) -> Result<()> {
+        let steamcmd_exe = self.get_exe_path();
+        
+        println_step(&format!("Running SteamCMD with args: {args:?}"), 2);
+        println!();
+        
+        // Use spawn() instead of output() to allow interactive input
+        let mut child = Command::new(&steamcmd_exe)
+            .args(args)
+            .stdin(Stdio::inherit())   // Allow user input
+            .stdout(Stdio::inherit())  // Show output directly
+            .stderr(Stdio::inherit())  // Show errors directly
+            .spawn()
+            .context("Failed to execute SteamCMD")?;
+        
+        // Wait for the process to complete
+        let status = child.wait()
+            .context("Failed to wait for SteamCMD process")?;
+        
+        if !status.success() {
+            return Err(anyhow!(
+                "SteamCMD failed with exit code: {:?}", 
+                status.code()
+            ));
+        }
+
+        Ok(())
+    }
+
+    /// Check if the SteamCMD directory is empty
+    fn is_directory_empty(&self) -> Result<bool> {
+        let entries = fs::read_dir(&self.steamcmd_dir)
+            .context("Failed to read SteamCMD directory")?;
+        
+        Ok(entries.count() == 0)
     }
 
     /// Download SteamCMD zip file using curl
@@ -229,41 +268,6 @@ impl SteamCmdManager {
             }
         }
         
-        Ok(())
-    }
-
-    /// Get the path to steamcmd.exe
-    pub fn get_exe_path(&self) -> PathBuf {
-        self.steamcmd_dir.join(STEAMCMD_EXE)
-    }
-
-    /// Run SteamCMD with arguments, allowing interactive input
-    fn run_steamcmd_with_args(&self, args: Vec<&str>) -> Result<()> {
-        let steamcmd_exe = self.get_exe_path();
-        
-        println_step(&format!("Running SteamCMD with args: {args:?}"), 2);
-        println!();
-        
-        // Use spawn() instead of output() to allow interactive input
-        let mut child = Command::new(&steamcmd_exe)
-            .args(&args)
-            .stdin(Stdio::inherit())   // Allow user input
-            .stdout(Stdio::inherit())  // Show output directly
-            .stderr(Stdio::inherit())  // Show errors directly
-            .spawn()
-            .context("Failed to execute SteamCMD")?;
-        
-        // Wait for the process to complete
-        let status = child.wait()
-            .context("Failed to wait for SteamCMD process")?;
-        
-        if !status.success() {
-            return Err(anyhow!(
-                "SteamCMD failed with exit code: {:?}", 
-                status.code()
-            ));
-        }
-
         Ok(())
     }
 }

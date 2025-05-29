@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{Result};
 
 mod ui;
 use ui::banner::print_banner;
@@ -9,16 +9,12 @@ use lock::check_if_initialized;
 mod config;
 use config::Config;
 
-mod steamcmd2;
-use steamcmd2::SteamCmdManager;
+mod steamcmd;
+mod collection_parser;
+mod collection_fetcher;
 
 mod server;
 use server::ServerManager;
-
-mod collection_parser;
-
-mod collection_fetcher;
-use collection_fetcher::CollectionFetcher;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 

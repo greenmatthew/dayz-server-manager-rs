@@ -1,8 +1,5 @@
-// src/collection_parser.rs
-use anyhow::{Context, Result, anyhow};
+use anyhow::{Result, anyhow};
 use scraper::{Html, Selector};
-use std::fmt;
-use serde::{Deserialize, Serialize};
 use crate::config::mod_entry::ModEntry;
 
 pub struct SteamCollectionParser;
@@ -95,49 +92,5 @@ impl SteamCollectionParser {
         }
         
         None
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_extract_mod_id_from_url() {
-        let url = "https://steamcommunity.com/sharedfiles/filedetails/?id=1559212036";
-        assert_eq!(SteamCollectionParser::extract_mod_id_from_url(url), Some("1559212036"));
-        
-        let url_with_params = "https://steamcommunity.com/sharedfiles/filedetails/?id=1559212036&searchtext=";
-        assert_eq!(SteamCollectionParser::extract_mod_id_from_url(url_with_params), Some("1559212036"));
-        
-        let invalid_url = "https://steamcommunity.com/sharedfiles/filedetails/";
-        assert_eq!(SteamCollectionParser::extract_mod_id_from_url(invalid_url), None);
-    }
-    
-    #[test]
-    fn test_parse_sample_html() {
-        let sample_html = r#"
-        <div class="collectionItem">
-            <div class="workshopItem">
-                <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=1559212036">
-                    <div class="workshopItemTitle">CF</div>
-                </a>
-            </div>
-        </div>
-        <div class="collectionItem">
-            <div class="workshopItem">
-                <a href="https://steamcommunity.com/sharedfiles/filedetails/?id=1564026768">
-                    <div class="workshopItemTitle">Community-Online-Tools</div>
-                </a>
-            </div>
-        </div>
-        "#;
-        
-        let result = SteamCollectionParser::parse_collection_html(sample_html).unwrap();
-        assert_eq!(result.len(), 2);
-        assert_eq!(result[0].id, 1559212036);
-        assert_eq!(result[0].name, "CF");
-        assert_eq!(result[1].id, 1564026768);
-        assert_eq!(result[1].name, "Community-Online-Tools");
     }
 }

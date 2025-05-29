@@ -71,7 +71,7 @@ impl Config {
         // Show collection URL if present
         if let Some(collection_url) = &self.mods.mod_collection_url {
             if !collection_url.trim().is_empty() {
-                println!("  Collection URL: {}", collection_url);
+                println!("  Collection URL: {collection_url}");
             }
         }
         println!();

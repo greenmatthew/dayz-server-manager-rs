@@ -6,7 +6,7 @@ use std::process::{Command, Stdio};
 use std::cell::OnceCell;
 
 use crate::config::mod_entry::ModEntry;
-use crate::steamcmd2::{self, SteamCmdManager};
+use crate::steamcmd::{SteamCmdManager};
 use crate::ui::status::{println_step, println_success, println_failure};
 use crate::config::Config;
 

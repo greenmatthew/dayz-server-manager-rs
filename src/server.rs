@@ -1,6 +1,5 @@
 use anyhow::{Context, Result, anyhow};
-use std::os::windows::fs::symlink_dir;
-use std::os::windows::fs::symlink_file;
+use std::os::windows::fs::{symlink_dir, symlink_file};
 use std::fs;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
@@ -128,7 +127,7 @@ impl ServerManager {
         }
 
         // Run the server - this should be interactive like SteamCMD
-        self.run_server_with_args(args)?;
+        self.run_server_with_args(&args)?;
         
         println_success("DayZ server has stopped", 0);
         Ok(())
@@ -262,7 +261,7 @@ impl ServerManager {
                                     let target_key_path = server_keys_path.join(filename);
                                     
                                     // Use symlink_file for individual files
-                                    if std::os::windows::fs::symlink_file(&key_file_path, &target_key_path).is_err() {
+                                    if symlink_file(&key_file_path, &target_key_path).is_err() {
                                         return Err(anyhow!(
                                             "Failed to create key file symlink from {key_file_path:?} to {target_key_path:?}"
                                         ));
@@ -311,7 +310,7 @@ impl ServerManager {
     }
 
     /// Run the DayZ server with arguments, allowing interactive input/output
-    fn run_server_with_args(&self, args: Vec<String>) -> Result<()> {
+    fn run_server_with_args(&self, args: &[String]) -> Result<()> {
         let server_exe_path = self.get_server_exe_path();
         
         println_step(&format!("Executing: {} {}", SERVER_EXE, args.join(" ")), 2);
@@ -319,7 +318,7 @@ impl ServerManager {
         
         // Use spawn() to allow interactive input/output (server console, etc.)
         let mut child = Command::new(&server_exe_path)
-            .args(&args)
+            .args(args)
             .current_dir(&self.server_install_dir) // Set working directory to server install dir
             .stdin(Stdio::inherit())   // Allow user input to server console
             .stdout(Stdio::inherit())  // Show server output directly

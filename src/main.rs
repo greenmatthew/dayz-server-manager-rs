@@ -37,21 +37,16 @@ fn main() -> Result<()> {
     let mut server_manager = ServerManager::new(config.clone(), &server_install_dir);
 
     // Initialize SteamCMD
-    server_manager.setup_steamcmd();
-
-    // Initialize mods manager and install/update mods
-    // let mods_manager = ModsManager::new(config.clone(), &server_install_dir);
-    // mods_manager.cleanup_unused_mods()?;
-    // mods_manager.install_mods()?;
+    server_manager.setup_steamcmd()?;
 
     // Update server (always validates)
-    server_manager.install_or_update_server();
+    server_manager.install_or_update_server()?;
 
     // Update/validate mods
-    server_manager.install_or_update_mods();
+    server_manager.install_or_update_mods()?;
 
     // Run the DayZ server
-    server_manager.run_server();
+    server_manager.run_server()?;
     
     Ok(())
 }

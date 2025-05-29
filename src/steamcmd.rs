@@ -29,6 +29,7 @@ impl SteamCmdManager {
     }
 
     /// Install or update a Steam application (like DayZ server)
+    #[allow(clippy::doc_markdown)]
     pub fn install_or_update_app(
         &self, 
         install_dir: &str, 
@@ -162,6 +163,7 @@ impl SteamCmdManager {
     }
 
     /// Run SteamCMD with arguments, allowing interactive input
+    #[allow(clippy::doc_markdown)]
     fn run_steamcmd_with_args(&self, args: &[String]) -> Result<()> {
         let steamcmd_exe = self.get_exe_path();
         

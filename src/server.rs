@@ -105,6 +105,7 @@ impl ServerManager {
     }
 
     /// Run the DayZ server with configured mods
+    #[allow(clippy::doc_markdown)]
     pub fn run_server(&self) -> Result<()> {
         let server_exe_path = self.get_server_exe_path();
         
@@ -292,6 +293,7 @@ impl ServerManager {
     }
 
     /// Get the full path to the DayZ server executable
+    #[allow(clippy::doc_markdown)]
     fn get_server_exe_path(&self) -> PathBuf {
         self.server_install_dir.join(SERVER_EXE)
     }
@@ -310,6 +312,7 @@ impl ServerManager {
     }
 
     /// Run the DayZ server with arguments, allowing interactive input/output
+    #[allow(clippy::doc_markdown)]
     fn run_server_with_args(&self, args: &[String]) -> Result<()> {
         let server_exe_path = self.get_server_exe_path();
         

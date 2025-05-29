@@ -7,13 +7,21 @@ game_app_id = 221100              # App ID for DayZ (base game)
 username = "username"             # Steam account name (login once manually to cache credentials)
 
 [mods]
-mod_list = [
-    # Format: { id = WorkshopID, name = "Mod Name" }
-    # Essential server tools (uncomment to use):
+# Both mod_list and mod_collection_url are optional and can be used together
+# mod_list mods are always loaded BEFORE collection mods
+# Use mod_list for essential server mods or quick server setup
+
+# Individual mods (optional)
+# mod_list = [
+#     # Format: { id = WorkshopID, name = "Mod Name" }
+#     # Essential server tools (uncomment to use):
     
-    # CF - Community Framework - Required by many server mods
-    # { id = 1559212036, name = "CF" },
+#     # CF - Community Framework - Required by many server mods
+#     # { id = 1559212036, name = "CF" },
     
-    # Community-Online-Tools - Server admin tools (requires CF)
-    # { id = 1564026768, name = "Community-Online-Tools" },
-]
+#     # Community-Online-Tools - Server admin tools (requires CF)
+#     # { id = 1564026768, name = "Community-Online-Tools" },
+# ]
+
+# Steam Workshop collection (optional)
+# mod_collection_url = "https://steamcommunity.com/sharedfiles/filedetails/?id=3489459461"

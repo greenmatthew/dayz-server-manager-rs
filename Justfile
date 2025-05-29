@@ -39,7 +39,3 @@ install PATH: build-release
 # Remove build artifacts and intermediate files
 clean:
     cargo clean
-
-# Clean everything including distribution directory and removes both Cargo build artifacts and any custom dist folder
-clean-all: clean
-    rm -rf dist/

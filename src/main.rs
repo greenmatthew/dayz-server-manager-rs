@@ -17,6 +17,7 @@ mod server;
 use server::ServerManager;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
+const AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
 
 fn main() -> Result<()> {
     print_banner();

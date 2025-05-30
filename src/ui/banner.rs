@@ -1,4 +1,4 @@
-use crate::VERSION;
+use crate::{VERSION, AUTHORS};
 
 pub fn print_banner() {
     let banner = include_str!("../../banner.ascii");
@@ -27,6 +27,22 @@ pub fn print_banner() {
         0
     };
     println!("{}{}", " ".repeat(padding), title);
+
+    // Parse and display authors
+    let authors_vec: Vec<&str> = AUTHORS.split(':').map(str::trim).collect();
+    let authors_text = if authors_vec.len() == 1 {
+        format!("Author: {}", authors_vec[0])
+    } else {
+        format!("Authors: {}", authors_vec.join(", "))
+    };
+    
+    let authors_len = authors_text.chars().count();
+    let authors_padding = if term_width > authors_len {
+        (term_width - authors_len) / 2
+    } else {
+        0
+    };
+    println!("{}{}", " ".repeat(authors_padding), authors_text);
 
     println!(); // Padding after banner
 }

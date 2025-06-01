@@ -55,7 +55,7 @@ impl ServerManager {
 
         if self.args.offline {
             if self.get_server_exe_path().exists() {
-                println_step("Skipping checking for updates (offline mode enabled)...", 3);
+                println_step("Skipping checking for updates (offline mode enabled)...", 1);
             } else {
                 return Err(anyhow!(
                     "{} not found locally. Run without --offline to install it first.", 
@@ -99,7 +99,7 @@ impl ServerManager {
         // Install individual mods
         for mod_entry in individual_mods {
             if let Err(e) = self.install_mod(mod_entry.id, &mod_entry.name) {
-                println_failure(&format!("Failed to install mod {}: {}", mod_entry.name, e), 0);
+                println_failure(&format!("Failed to install mod {}: {}", mod_entry.name, e), 3);
                 failed_mods.push(mod_entry.name.clone());
             }
         }
@@ -107,7 +107,7 @@ impl ServerManager {
         // Install collection mods
         for mod_entry in collection_mods {
             if let Err(e) = self.install_mod(mod_entry.id, &mod_entry.name) {
-                println_failure(&format!("Failed to install mod {}: {}", mod_entry.name, e), 0);
+                println_failure(&format!("Failed to install mod {}: {}", mod_entry.name, e), 3);
                 failed_mods.push(mod_entry.name.clone());
             }
         }
@@ -175,7 +175,7 @@ impl ServerManager {
                 let path = entry.path();
                 if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
                     if name.starts_with('@') {
-                        println_step(&format!("Removing: {name}"), 1);
+                        println_step(&format!("Removing: {name}"), 2);
                         let _ = fs::remove_dir_all(&path);
                     }
                 }

@@ -35,6 +35,24 @@ fn main() -> Result<()> {
                 .help("Display the license information")
                 .action(clap::ArgAction::SetTrue),
         )
+        .arg(
+            Arg::new("skip-server-validation")
+                .long("skip-server-validation")
+                .help("Skip Steam's validation step of DayZ server files.")
+                .action(clap::ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("skip-mod-validation")
+                .long("skip-mod-validation")
+                .help("Skip Steam's validation step of DayZ workshop mod files.")
+                .action(clap::ArgAction::SetTrue),
+        )
+        .arg(
+            Arg::new("skip-validation")
+                .long("skip-validation")
+                .help("Skip validation of both DayZ server and workshop mod files.")
+                .action(clap::ArgAction::SetTrue),
+        )
         .get_matches();
 
     // Handle license flag

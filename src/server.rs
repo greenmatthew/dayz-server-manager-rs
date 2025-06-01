@@ -63,7 +63,7 @@ impl ServerManager {
             &self.server_install_dir.to_string_lossy(),  // Convert PathBuf to &str
             &server_config.username,
             server_config.server_app_id,
-            true
+            self.args.skip_validation || self.args.skip_server_validation
         )?; 
 
         println!();
@@ -244,7 +244,7 @@ impl ServerManager {
             &server_config.username,
             server_config.game_app_id,
             workshop_id,
-            true
+            self.args.skip_validation || self.args.skip_mod_validation
         )?;
 
         println!();

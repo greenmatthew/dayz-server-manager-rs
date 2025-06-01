@@ -7,17 +7,17 @@ use clap::Parser;
     about = "DayZ Server Manager - Download, update, and run DayZ servers with mod support"
 )]
 pub struct CliArgs {
-    /// Test flag example
-    #[arg(long, help = "Enable test mode")]
-    pub test: bool,
+    /// Skip server validation during update
+    #[arg(long = "skip-server-validation")]
+    pub skip_server_validation: bool,
     
-    // Add any other command line arguments you need here
-    // For example:
-    // #[arg(long, help = "Skip mod validation")]
-    // pub skip_validation: bool,
+    /// Skip mod validation during update
+    #[arg(long = "skip-mod-validation")]
+    pub skip_mod_validation: bool,
     
-    // #[arg(long, help = "Force server update")]
-    // pub force_update: bool,
+    /// Skip all validation (server and mods)
+    #[arg(long = "skip-validation")]
+    pub skip_validation: bool,
 }
 
 impl CliArgs {

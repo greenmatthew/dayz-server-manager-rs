@@ -249,7 +249,7 @@ impl ServerManager {
         // Get reference to steamcmd manager
         let steamcmd = self.steamcmd_manager.as_ref().unwrap();
 
-        let mod_source_path = steamcmd.get_workshop_mod_dir(workshop_id)?;
+        let mod_source_path = steamcmd.get_workshop_mod_dir(self.config.server.game_app_id, workshop_id)?;
 
         if self.args.offline {
             if mod_source_path.exists() {

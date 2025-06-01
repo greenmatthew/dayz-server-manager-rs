@@ -88,13 +88,14 @@ impl SteamCmdManager {
     }
 
     /// Get workshop content directory for a specific game
-    pub fn get_workshop_mod_dir(&self, game_app_id: u64) -> Result<PathBuf> {
+    pub fn get_workshop_mod_dir(&self, app_id: u32, workshop_id: u64) -> Result<PathBuf> {
         std::path::absolute(
             self.steamcmd_dir
                 .join("steamapps")
                 .join("workshop")
                 .join("content")
-                .join(game_app_id.to_string())
+                .join(app_id.to_string())
+                .join(workshop_id.to_string())
         )
         .context("Failed to convert workshop directory to absolute path")
     }

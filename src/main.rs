@@ -1,4 +1,5 @@
 use anyhow::{Result};
+use clap::{Arg, Command};
 
 mod ui;
 use ui::banner::print_banner;
@@ -21,10 +22,26 @@ use cli::CliArgs;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
+const LICENSE: &str = include_str!("../LICENSE");
 
 fn main() -> Result<()> {
-    // Parse command line arguments - this will handle -h/--help automatically
-    let _args = CliArgs::parse_args();
+    // Handle global flags first using clap's Command builder
+    let matches = Command::new("dzsm")
+        .version(VERSION)
+        .about("DZSM: DayZ Server Manager - Download, update, and run DayZ servers with mod support")
+        .arg(
+            Arg::new("license")
+                .long("license")
+                .help("Display the license information")
+                .action(clap::ArgAction::SetTrue),
+        )
+        .get_matches();
+
+    // Handle license flag
+    if matches.get_flag("license") {
+        println!("{LICENSE}");
+        return Ok(());
+    }
 
     // Continue with normal application execution
     print_banner();

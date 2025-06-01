@@ -5,10 +5,14 @@ use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use std::cell::OnceCell;
 
-use crate::config::mod_entry::ModEntry;
-use crate::steamcmd::{SteamCmdManager};
-use crate::ui::status::{println_step, println_success, println_failure};
+use crate::cli::CliArgs;
+
 use crate::config::Config;
+use crate::config::mod_entry::ModEntry;
+
+use crate::steamcmd::{SteamCmdManager};
+
+use crate::ui::status::{println_step, println_success, println_failure};
 
 use crate::collection_fetcher::CollectionFetcher;
 
@@ -18,6 +22,7 @@ const SERVER_CONFIG: &str = "serverDZ.cfg";
 const SERVER_PROFILES: &str = "profiles";
 
 pub struct ServerManager {
+    args: CliArgs,
     config: Config,
     server_install_dir: PathBuf,
     steamcmd_manager: Option<SteamCmdManager>,
@@ -25,8 +30,9 @@ pub struct ServerManager {
 }
 
 impl ServerManager {
-    pub fn new(config: Config, server_install_dir: &str) -> Self {
+    pub fn new(args: CliArgs, config: Config, server_install_dir: &str) -> Self {
         Self {
+            args,
             config,
             server_install_dir: PathBuf::from(server_install_dir),
             steamcmd_manager: None,

@@ -13,14 +13,16 @@ const STEAMCMD_DOWNLOAD_URL: &str = "https://steamcdn-a.akamaihd.net/client/inst
 
 pub struct SteamCmdManager {
     steamcmd_dir: PathBuf,
+    offline: bool,
 }
 
 impl SteamCmdManager {
     /// Create a new ``SteamCmdManager`` and ensure steamcmd is installed
-    pub fn new(steamcmd_dir: &str) -> Result<Self> {
+    pub fn new(steamcmd_dir: &str, offline: bool) -> Result<Self> {
         let steamcmd_dir_path = PathBuf::from(steamcmd_dir);
         let manager = Self {
             steamcmd_dir: steamcmd_dir_path,
+            offline,
         };
         
         // Check and install steamcmd during construction
@@ -62,7 +64,7 @@ impl SteamCmdManager {
         app_id: u32, 
         workshop_id: u64, 
         validate: bool
-    ) -> Result<PathBuf> {
+    ) -> Result<()> {
         let mut args = vec![
             "+login".to_string(),
             username.to_string(),
@@ -77,15 +79,7 @@ impl SteamCmdManager {
         
         args.push("+quit".to_string());
         
-        self.run_steamcmd_with_args(&args)?;
-
-        let mut mod_path = self.get_workshop_content_dir(app_id)
-            .join(workshop_id.to_string());
-        mod_path = std::path::absolute(mod_path)
-            .context("Failed to convert workshop directory to absolute path")?;
-
-        // Return the path where steamcmd cached the mod
-        Ok(mod_path)
+        self.run_steamcmd_with_args(&args)
     }
 
     /// Get the path to the steamcmd executable
@@ -94,12 +88,15 @@ impl SteamCmdManager {
     }
 
     /// Get workshop content directory for a specific game
-    pub fn get_workshop_content_dir(&self, game_app_id: u32) -> PathBuf {
-        self.steamcmd_dir
-            .join("steamapps")
-            .join("workshop")
-            .join("content")
-            .join(game_app_id.to_string())
+    pub fn get_workshop_mod_dir(&self, game_app_id: u64) -> Result<PathBuf> {
+        std::path::absolute(
+            self.steamcmd_dir
+                .join("steamapps")
+                .join("workshop")
+                .join("content")
+                .join(game_app_id.to_string())
+        )
+        .context("Failed to convert workshop directory to absolute path")
     }
 
     /// Check if steamcmd is installed and handle installation if needed
@@ -110,6 +107,13 @@ impl SteamCmdManager {
         if steamcmd_exe_path.exists() {
             println_success("SteamCMD found", 0);
             return Ok(());
+        }
+
+        if self.offline {
+            return Err(anyhow!(
+                "SteamCMD not found at \"{}\" and unable to install in offline mode. Adjust `server.steamcmd_dir` in config.toml or run without --offline to install SteamCMD first.", 
+                steamcmd_exe_path.display()  // Show the exe path for clarity
+            ));
         }
 
         println_failure("SteamCMD missing", 0);

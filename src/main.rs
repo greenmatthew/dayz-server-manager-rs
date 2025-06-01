@@ -36,6 +36,12 @@ fn main() -> Result<()> {
                 .action(clap::ArgAction::SetTrue),
         )
         .arg(
+            Arg::new("offline")
+                .long("offline")
+                .help("Skip Steam connections and use cached files only.")
+                .action(clap::ArgAction::SetTrue),
+        )
+        .arg(
             Arg::new("skip-server-validation")
                 .long("skip-server-validation")
                 .help("Skip Steam's validation step of DayZ server files.")

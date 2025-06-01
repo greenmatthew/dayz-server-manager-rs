@@ -42,7 +42,7 @@ impl ServerManager {
 
     pub fn setup_steamcmd(&mut self) -> Result<()> {  // Make self mutable
         // Handle the Result and extract the value
-        let steamcmd = SteamCmdManager::new(&self.config.server.steamcmd_dir)?;
+        let steamcmd = SteamCmdManager::new(&self.config.server.steamcmd_dir, self.args.offline)?;
         self.steamcmd_manager = Some(steamcmd);
         Ok(())
     }
@@ -53,20 +53,31 @@ impl ServerManager {
             return Err(anyhow!("SteamCMD has not been setup yet."));
         }
 
-        // Get reference to steamcmd manager
-        let steamcmd = self.steamcmd_manager.as_ref().unwrap();
-        let server_config = &self.config.server;  // Take reference
+        if self.args.offline {
+            if self.get_server_exe_path().exists() {
+                println_step("Skipping checking for updates (offline mode enabled)...", 3);
+            } else {
+                return Err(anyhow!(
+                    "{} not found locally. Run without --offline to install it first.", 
+                    SERVER_EXE
+                ));
+            }
+        } else {
+            // Get reference to steamcmd manager
+            let steamcmd = self.steamcmd_manager.as_ref().unwrap();
+            let server_config = &self.config.server;  // Take reference
 
-        println_step("Installing or updating DayZ Server application...\n", 1);
-        
-        steamcmd.install_or_update_app(
-            &self.server_install_dir.to_string_lossy(),  // Convert PathBuf to &str
-            &server_config.username,
-            server_config.server_app_id,
-            self.args.skip_validation || self.args.skip_server_validation
-        )?; 
+            println_step("Installing or updating DayZ Server application...\n", 1);
+            
+            steamcmd.install_or_update_app(
+                &self.server_install_dir.to_string_lossy(),  // Convert PathBuf to &str
+                &server_config.username,
+                server_config.server_app_id,
+                self.args.skip_validation || self.args.skip_server_validation
+            )?; 
 
-        println!();
+            println!();
+        }
 
         Ok(())
     }
@@ -228,6 +239,8 @@ impl ServerManager {
     /// Then symlinking the instance and its keys to the server install dir
     #[allow(clippy::doc_markdown)]
     fn install_mod(&self, workshop_id: u64, name: &str) -> Result<()> {
+        println_step(&format!("Attempting to install {name} ({workshop_id})..."), 2);
+        
         // Ensure SteamCMD is setup
         if self.steamcmd_manager.is_none() {
             return Err(anyhow!("SteamCMD has not been setup yet."));
@@ -235,19 +248,35 @@ impl ServerManager {
 
         // Get reference to steamcmd manager
         let steamcmd = self.steamcmd_manager.as_ref().unwrap();
-        let server_config = &self.config.server;
 
-        println_step(&format!("Attempting to install {name} ({workshop_id})..."), 2);
-        println_step("Downloading...\n", 3);
+        let mod_source_path = steamcmd.get_workshop_mod_dir(workshop_id)?;
 
-        let mod_source_path = steamcmd.download_or_update_mod(
-            &server_config.username,
-            server_config.game_app_id,
-            workshop_id,
-            self.args.skip_validation || self.args.skip_mod_validation
-        )?;
+        if self.args.offline {
+            if mod_source_path.exists() {
+                println_step("Skipping checking for updates (offline mode enabled)...", 3);
+            } else {
+                return Err(anyhow!(
+                    "Mod {} not found locally. Run without --offline to download it first.", 
+                    workshop_id
+                ));
+            }
+        } else {
+            let server_config = &self.config.server;
+        
+            println_step("Downloading or checking for updates...", 3);
+            println!();
 
-        println!();
+            steamcmd.download_or_update_mod(
+                &server_config.username,
+                server_config.game_app_id,
+                workshop_id,
+                self.args.skip_validation || self.args.skip_mod_validation
+            )?;
+
+            println!();
+        }
+
+        
         println_step("Installing...", 4);
 
         let mod_target_path = self.server_install_dir

@@ -6,6 +6,7 @@ use clap::Parser;
     version = env!("CARGO_PKG_VERSION"),
     about = "DayZ Server Manager - Download, update, and run DayZ servers with mod support"
 )]
+#[allow(clippy::struct_excessive_bools)]
 pub struct CliArgs {
     /// Skip server validation during update
     #[arg(long = "skip-server-validation")]
@@ -18,6 +19,13 @@ pub struct CliArgs {
     /// Skip all validation (server and mods)
     #[arg(long = "skip-validation")]
     pub skip_validation: bool,
+
+    /// Skips all SteamCMD operations,
+    /// throws an error if the DayZServer64.exe is missing
+    /// or if a workshop mod's source dir is missing.
+    #[arg(long = "offline")]
+    #[allow(clippy::doc_markdown)]
+    pub offline: bool,
 }
 
 impl CliArgs {

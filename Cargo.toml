@@ -12,6 +12,7 @@ categories = ["games", "command-line-utilities"]
 [dependencies]
 anyhow = "1.0.98"
 chrono = { version = "0.4.41", features = ["serde"] }
+clap = { version = "4.5.39", features = ["derive"] }
 curl = "0.4.47"
 scraper = "0.23.1"
 serde = { version = "1.0.219", features = ["derive"] }

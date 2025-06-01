@@ -16,10 +16,17 @@ mod collection_fetcher;
 mod server;
 use server::ServerManager;
 
+mod cli;
+use cli::CliArgs;
+
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const AUTHORS: &str = env!("CARGO_PKG_AUTHORS");
 
 fn main() -> Result<()> {
+    // Parse command line arguments - this will handle -h/--help automatically
+    let _args = CliArgs::parse_args();
+
+    // Continue with normal application execution
     print_banner();
 
     // Get current working directory for server installation

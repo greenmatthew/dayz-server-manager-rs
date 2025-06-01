@@ -50,8 +50,6 @@ impl Config {
         println!("\n=== Configuration Summary ===");
         println!("Server:");
         println!("  steamcmd_dir: {}", self.server.steamcmd_dir);
-        println!("  server_app_id: {}", self.server.server_app_id);
-        println!("  game_app_id: {}", self.server.game_app_id);
         println!("  username: {}", self.server.username);
         println!("  install_dir: {server_install_dir}");
         

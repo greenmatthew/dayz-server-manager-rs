@@ -2,8 +2,6 @@
 # Path to SteamCMD installation directory:
 # steamcmd_dir = "C:/steamcmd"    # Absolute path example
 steamcmd_dir = "./steamcmd"       # Relative path example
-server_app_id = 223350            # App ID for DayZ Dedicated Server
-game_app_id = 221100              # App ID for DayZ (base game)
 username = "username"             # Steam account name (login once manually to cache credentials)
 
 [mods]

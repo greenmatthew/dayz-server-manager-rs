@@ -16,6 +16,11 @@ use crate::ui::status::{println_step, println_success, println_failure};
 
 use crate::collection_fetcher::CollectionFetcher;
 
+#[allow(clippy::unreadable_literal)]
+const DAYZ_SERVER_APP_ID: u32 = 223350;
+#[allow(clippy::unreadable_literal)]
+const DAYZ_GAME_APP_ID: u32 = 221100;
+
 const SERVER_EXE: &str = "DayZServer_x64.exe";
 const SERVER_KEYS: &str = "keys";
 const SERVER_CONFIG: &str = "serverDZ.cfg";
@@ -72,7 +77,7 @@ impl ServerManager {
             steamcmd.install_or_update_app(
                 &self.server_install_dir.to_string_lossy(),  // Convert PathBuf to &str
                 &server_config.username,
-                server_config.server_app_id,
+                DAYZ_SERVER_APP_ID,
                 self.args.skip_validation || self.args.skip_server_validation
             )?; 
 
@@ -249,7 +254,7 @@ impl ServerManager {
         // Get reference to steamcmd manager
         let steamcmd = self.steamcmd_manager.as_ref().unwrap();
 
-        let mod_source_path = steamcmd.get_workshop_mod_dir(self.config.server.game_app_id, workshop_id)?;
+        let mod_source_path = steamcmd.get_workshop_mod_dir(DAYZ_GAME_APP_ID, workshop_id)?;
 
         if self.args.offline {
             if mod_source_path.exists() {
@@ -268,7 +273,7 @@ impl ServerManager {
 
             steamcmd.download_or_update_mod(
                 &server_config.username,
-                server_config.game_app_id,
+                DAYZ_GAME_APP_ID,
                 workshop_id,
                 self.args.skip_validation || self.args.skip_mod_validation
             )?;

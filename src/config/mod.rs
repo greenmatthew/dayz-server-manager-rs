@@ -54,24 +54,25 @@ impl Config {
         println!("  install_dir: {server_install_dir}");
         
         println!("Mods:");
-        // Show individual mods if present
-        if let Some(mod_list) = &self.mods.server_mod_list {
-            if mod_list.is_empty() {
-                println!("  Individual mods: (none)");    
-            } else {
-                println!("  Individual mods:");
-                for (index, mod_entry) in mod_list.iter().enumerate() {
-                    println!("    {}. {} ({})", index + 1, mod_entry.name, mod_entry.id);
-                }
-            }
-        }
-        
         // Show collection URL if present
         if let Some(collection_url) = &self.mods.mod_collection_url {
             if !collection_url.trim().is_empty() {
                 println!("  Collection URL: {collection_url}");
             }
         }
+
+        // Show individual mods if present
+        if let Some(server_mod_list) = &self.mods.server_mod_list {
+            if server_mod_list.is_empty() {
+                println!("  Server mods: (none)");    
+            } else {
+                println!("  Server mods:");
+                for (index, mod_entry) in server_mod_list.iter().enumerate() {
+                    println!("    {}. {} ({})", index + 1, mod_entry.name, mod_entry.id);
+                }
+            }
+        }
+
         println!();
     }
 

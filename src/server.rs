@@ -153,6 +153,11 @@ impl ServerManager {
             args.push(format!("-mod={mods_string}"));
         }
 
+        // Add mods if any are configured
+        if let Some(mods_string) = self.build_server_mods_string() {
+            args.push(format!("-serverMod={mods_string}"));
+        }
+
         // Run the server - this should be interactive like SteamCMD
         self.run_server_with_args(&args)?;
         
@@ -209,7 +214,7 @@ impl ServerManager {
 
     /// Get individual mods from config
     fn get_individual_mods(&self) -> &[ModEntry] {
-        self.config.mods.mod_list.as_deref().unwrap_or(&[])
+        self.config.mods.server_mod_list.as_deref().unwrap_or(&[])
     }
 
     /// Get collection mods (cached)
@@ -230,14 +235,6 @@ impl ServerManager {
                 }
             )
         })
-    }
-
-    /// Get all mods combined
-    fn get_all_mods(&self) -> Vec<&ModEntry> {
-        let mut all_mods = Vec::new();
-        all_mods.extend(self.get_individual_mods());
-        all_mods.extend(self.get_collection_mods());
-        all_mods
     }
 
     /// Installs a mod by downloading or updating its SteamCMD instance
@@ -355,7 +352,20 @@ impl ServerManager {
 
     /// Build the mods string in the format: @ModName1;@ModName2;@ModName3
     fn build_mods_string(&self) -> Option<String> {
-        let complete_mod_list = self.get_all_mods();
+        let complete_mod_list = self.get_collection_mods();
+        if complete_mod_list.is_empty() {
+            None
+        } else {
+            Some(complete_mod_list.iter()
+                .map(|mod_entry| format!("@{}", mod_entry.name))
+                .collect::<Vec<String>>()
+                .join(";"))
+        }
+    }
+
+    /// Build the server mods string in the format: @ModName1;@ModName2;@ModName3
+    fn build_server_mods_string(&self) -> Option<String> {
+        let complete_mod_list = self.get_individual_mods();
         if complete_mod_list.is_empty() {
             None
         } else {

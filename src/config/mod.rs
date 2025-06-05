@@ -55,7 +55,7 @@ impl Config {
         
         println!("Mods:");
         // Show individual mods if present
-        if let Some(mod_list) = &self.mods.mod_list {
+        if let Some(mod_list) = &self.mods.server_mod_list {
             if mod_list.is_empty() {
                 println!("  Individual mods: (none)");    
             } else {
